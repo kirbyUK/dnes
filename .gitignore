@@ -1,0 +1,35 @@
+# Compiled Object files
+*.o
+*.obj
+
+# Compiled Dynamic libraries
+*.so
+*.dylib
+*.dll
+
+# Compiled Static libraries
+*.a
+*.lib
+
+# Executables
+*.exe
+
+# DUB
+.dub
+docs.json
+__dummy.html
+docs/
+
+# Code coverage
+*.lst
+
+# Swap files
+*.swp
+
+# Compiled binaries
+bin/
+
+# dub files
+.dub
+dub.selections.json
+dub_*

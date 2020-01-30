@@ -1,0 +1,13 @@
+{
+	"name": "dnes",
+	"description": "A NES emulator written in D",
+	"homepage": "https://github.com/kirbyUK/dnes",
+	"authors": [
+		"Alex Kerr"
+	],
+	"copyright": "Copyright © 2020, Alex Kerr",
+	"license": "ISC",
+	"dependencies": {
+		"derelict-sdl2": "~>3.1.0-alpha.4"
+	}
+}
