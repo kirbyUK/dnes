@@ -2,6 +2,7 @@ module dnes.cpu.memory;
 
 import std.typecons;
 
+import dnes.cpu;
 import dnes.ppu;
 import dnes.rom;
 
@@ -28,8 +29,11 @@ public:
         ];
 
         _writeCallbacks = [
+            // Writes to OAMDMA cause the CPU to enter DMA
+            tuple(0x4014u, 0x4014u): (ushort, ubyte) { cpu.dma = true; },
+
             // Writes to the mapper are passed to it
-            tuple(0x8000u, 0xFFFFu): (ushort addr, ubyte value) { rom.mapper.write(addr, value); }
+            tuple(0x8000u, 0xFFFFu): (ushort addr, ubyte value) { rom.mapper.write(addr, value); },
         ];
     }
 
@@ -37,7 +41,7 @@ public:
      * Get the byte at the given address, performing any side effects that may
      * occur as a result of the read
      */
-    ubyte get8(ushort addr)
+    @safe @nogc ubyte get8(ushort addr)
     {
         foreach (k, v; _readCallbacks)
         {
@@ -51,7 +55,7 @@ public:
      * Set the byte at the given address, performing any side effects that may
      * occur as a result of the write (e.g. writing to PPU memory)
      */
-    void set8(ushort addr, ubyte value)
+    @nogc void set8(ushort addr, ubyte value)
     {
         foreach (k, v; _writeCallbacks)
         {
@@ -121,5 +125,5 @@ private:
 
     /// List of callbacks to execute when writing to certain addresses.
     /// Addresses are given as an inclusive range of values in a tuple.
-    nothrow @safe @nogc void delegate(ushort addr, ubyte value)[Tuple!(uint, uint)] _writeCallbacks;
+    nothrow @nogc void delegate(ushort addr, ubyte value)[Tuple!(uint, uint)] _writeCallbacks;
 }

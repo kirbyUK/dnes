@@ -4,6 +4,7 @@ import core.thread;
 import std.stdio;
 
 import dnes.ppu.memory;
+import dnes.ppu.oam;
 import dnes.ppu.rendering;
 
 /**
@@ -41,6 +42,9 @@ public:
 
 	/// The PPU memory
 	Memory memory;
+
+	/// The PPU OAM memory
+	OAM oam;
 
 	/// The number of clock cycles executed in this scanline. Resets after 340
 	uint cycles;

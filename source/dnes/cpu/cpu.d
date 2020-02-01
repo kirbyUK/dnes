@@ -3,6 +3,7 @@ module dnes.cpu.cpu;
 import core.thread;
 import std.stdio;
 
+import dnes.cpu.dma;
 import dnes.cpu.instructions;
 import dnes.cpu.memory;
 
@@ -19,7 +20,7 @@ public:
 	{
 		memory = new Memory();
 		cycles = 0;
-		_fiber = new Fiber(() => executeInstructions(this));
+		_dma = false;
 
 		// Initial register states
 		pc = 0xC000;
@@ -28,6 +29,9 @@ public:
 		x = 0;
 		y = 0;
 		status = 0x24;
+
+		_instructionsFiber = new Fiber(() => executeInstructions(this));
+		_dmaFiber = new Fiber(() => oamdma(this));
 	}
 
 	/**
@@ -38,7 +42,30 @@ public:
 	{
 		cycles++;
 		writefln("cpu: %d", cycles);
-		_fiber.call();
+
+		if (!_dma)
+			_instructionsFiber.call();
+		else
+			_dmaFiber.call();
+	}
+
+	/**
+	 * Returns: If the CPU is performing DMA or not
+	 */
+	@property nothrow @safe @nogc bool dma() const
+	{
+		return _dma;
+	}
+
+	/**
+	 * Property to set the DMA field - setting it to true enables DMA to begin
+	 * on the next CPU tick
+	 */
+	@property nothrow @nogc void dma(bool value)
+	{
+		_dma = value;
+		if (_dma)
+			_dmaFiber.reset();
 	}
 
 	/// The CPU memory
@@ -56,7 +83,9 @@ public:
 	ubyte  status; /// Processor status flags
 
 private:
-	Fiber _fiber;
+	Fiber _instructionsFiber;
+	Fiber _dmaFiber;
+	bool _dma;
 }
 
 // Export a global variable
