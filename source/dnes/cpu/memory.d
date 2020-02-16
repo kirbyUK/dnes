@@ -41,7 +41,7 @@ public:
      * Get the byte at the given address, performing any side effects that may
      * occur as a result of the read
      */
-    @safe @nogc ubyte get8(ushort addr)
+    @safe @nogc ubyte get(ushort addr)
     {
         foreach (k, v; _readCallbacks)
         {
@@ -55,7 +55,7 @@ public:
      * Set the byte at the given address, performing any side effects that may
      * occur as a result of the write (e.g. writing to PPU memory)
      */
-    @nogc void set8(ushort addr, ubyte value)
+    @nogc void set(ushort addr, ubyte value)
     {
         foreach (k, v; _writeCallbacks)
         {
@@ -121,9 +121,9 @@ private:
 
     /// List of callbacks to execute when reading certain addresses. Addresses
     /// are given as an inclusive range of values in a tuple.
-    nothrow @safe @nogc void delegate(ushort addr)[Tuple!(uint, uint)] _readCallbacks;
+    immutable nothrow @safe @nogc void delegate(ushort addr)[Tuple!(uint, uint)] _readCallbacks;
 
     /// List of callbacks to execute when writing to certain addresses.
     /// Addresses are given as an inclusive range of values in a tuple.
-    nothrow @nogc void delegate(ushort addr, ubyte value)[Tuple!(uint, uint)] _writeCallbacks;
+    immutable nothrow @nogc void delegate(ushort addr, ubyte value)[Tuple!(uint, uint)] _writeCallbacks;
 }

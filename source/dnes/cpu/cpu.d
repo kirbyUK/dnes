@@ -21,6 +21,7 @@ public:
 		memory = new Memory();
 		cycles = 0;
 		_dma = false;
+		_interrupt = Interrupt.NONE;
 
 		// Initial register states
 		pc = 0xC000;
@@ -47,6 +48,52 @@ public:
 			_instructionsFiber.call();
 		else
 			_dmaFiber.call();
+	}
+
+	/**
+	 * Check if the given flag is set
+	 *
+	 * Params:
+	 *     flag = The flag to test for
+	 *
+	 * Returns: True if the flag is set, false if not
+	 */
+	nothrow @safe @nogc bool getFlag(Flag flag) const
+	{
+		return (status & flag) > 0;
+	}
+
+	/**
+	 * Sets the given flag on or off
+	 *
+	 * Params:
+	 *     flag = The flag to set
+	 *     b    = The position to set it to
+	 */
+	nothrow @safe @nogc void setFlag(Flag flag, bool b)
+	{
+		if (b)
+			status |= flag;
+		else
+			status &= ~flag;
+	}
+
+	/**
+	 * Returns: The currently queued interrupt
+	 */
+	@property nothrow @safe @nogc Interrupt interrupt() const
+	{
+		return _interrupt;
+	}
+
+	/**
+	 * Property to set an interrupt - will be ignored if a higher priority
+	 * interrupt is already queued
+	 */
+	@property nothrow @safe @nogc void interrupt(Interrupt i)
+	{
+		if (i > _interrupt)
+			_interrupt = i;
 	}
 
 	/**
@@ -82,10 +129,32 @@ public:
 	ubyte  y;      /// Index register Y
 	ubyte  status; /// Processor status flags
 
+	/// Enumeration of each CPU flag
+	enum Flag
+	{
+		C = 1 << 0, // Carry
+		Z = 1 << 1, // Zero
+		I = 1 << 2, // Interrupt disable
+		D = 1 << 3, // Decimal mode
+		B = 1 << 4, // Break
+		V = 1 << 5, // Overflow
+		N = 1 << 6, // Negative
+	}
+
+	/// Enumeration of interrupt types
+	enum Interrupt
+	{
+		NONE  = 0,
+		IRQ   = 1,
+		NMI   = 2,
+		RESET = 3,
+	}
+
 private:
 	Fiber _instructionsFiber;
 	Fiber _dmaFiber;
 	bool _dma;
+	Interrupt _interrupt;
 }
 
 // Export a global variable

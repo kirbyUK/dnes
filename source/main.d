@@ -57,19 +57,28 @@ int main(string[] args)
 	
 	// Load the ROM from the given file
 	rom = new ROM(arg[1]);
-	writefln("%s:", arg[1]);
-	writefln("\tmapper: %d", rom.mappingNumber());
-	writefln("\tprg rom banks: %d", rom.header.prgRomBanks);
-	writefln("\tchr rom banks: %d", rom.header.chrRomBanks);
 
 	// Run the emulation
+	auto ret = 0;
 	cpu = new CPU();
 	ppu = new PPU();
-	while (true)
+	try
 	{
-		cpu.tick();
-		ppu.tick();
-		ppu.tick();
-		ppu.tick();
+		while (true)
+		{
+			cpu.tick();
+			ppu.tick();
+			ppu.tick();
+			ppu.tick();
+		}
 	}
+	catch (UnknownInstructionException e)
+	{
+		writeln(e.msg);
+		ret = 1;
+	}
+
+	// sdl cleanup
+
+	return ret;
 }
