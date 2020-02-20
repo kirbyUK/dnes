@@ -19,6 +19,7 @@ void usage(string self, GetoptResult result)
 
 /**
  * Process commandline arguments
+ *
  * Params:
  *     args = The program's commandline arguments
  * Returns: A 3-element tuple containing a boolean for if the program should
@@ -57,19 +58,28 @@ int main(string[] args)
 	
 	// Load the ROM from the given file
 	rom = new ROM(arg[1]);
-	writefln("%s:", arg[1]);
-	writefln("\tmapper: %d", rom.mappingNumber());
-	writefln("\tprg rom banks: %d", rom.header.prgRomBanks);
-	writefln("\tchr rom banks: %d", rom.header.chrRomBanks);
 
 	// Run the emulation
-	cpu = new CPU();
+	auto ret = 0;
+	cpu = new CPU(arg[2]);
 	ppu = new PPU();
-	while (true)
+	try
 	{
-		cpu.tick();
-		ppu.tick();
-		ppu.tick();
-		ppu.tick();
+		while (true)
+		{
+			cpu.tick();
+			ppu.tick();
+			ppu.tick();
+			ppu.tick();
+		}
 	}
+	catch (UnknownInstructionException e)
+	{
+		writeln(e.msg);
+		ret = 1;
+	}
+
+	// sdl cleanup
+
+	return ret;
 }

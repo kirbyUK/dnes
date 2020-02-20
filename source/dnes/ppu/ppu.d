@@ -1,7 +1,7 @@
 module dnes.ppu.ppu;
 
 import core.thread;
-import std.stdio;
+import std.format;
 
 import dnes.ppu.memory;
 import dnes.ppu.oam;
@@ -36,8 +36,15 @@ public:
 			if (++scanline > 261)
 				scanline = 0;
 		}
-		writefln("ppu: %d", cycles);
 		_fiber.call();
+	}
+
+	/**
+	 * Returns: The PPU state as a string
+	 */
+	override @safe string toString() const
+	{
+		return format("CYC: %3s SL:%d", cycles, scanline);
 	}
 
 	/// The PPU memory

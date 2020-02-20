@@ -25,15 +25,18 @@ public:
             tuple(0x2007u, 0x2007u): (ushort) { },
 
             // Reading JOY1 gets the next button status
-            tuple(0x4016u, 0x4016u): (ushort) { _memory[0x4016] = 0; }
+            tuple(0x4016u, 0x4016u): (ushort) { _memory[0x4016] = 0; },
+
+            // Reads to ROM spaced are passed to the ROM to deal with
+            tuple(0x4020u, 0xffffu): (ushort addr) { _memory[addr] = rom.read(addr); }
         ];
 
         _writeCallbacks = [
             // Writes to OAMDMA cause the CPU to enter DMA
             tuple(0x4014u, 0x4014u): (ushort, ubyte) { cpu.dma = true; },
 
-            // Writes to the mapper are passed to it
-            tuple(0x8000u, 0xFFFFu): (ushort addr, ubyte value) { rom.mapper.write(addr, value); },
+            // Writes to the ROM are passed to it
+            tuple(0x4020u, 0xffffu): (ushort addr, ubyte value) { rom.write(addr, value); },
         ];
     }
 
@@ -41,7 +44,7 @@ public:
      * Get the byte at the given address, performing any side effects that may
      * occur as a result of the read
      */
-    @safe @nogc ubyte get8(ushort addr)
+    @safe @nogc ubyte get(ushort addr)
     {
         foreach (k, v; _readCallbacks)
         {
@@ -55,7 +58,7 @@ public:
      * Set the byte at the given address, performing any side effects that may
      * occur as a result of the write (e.g. writing to PPU memory)
      */
-    @nogc void set8(ushort addr, ubyte value)
+    @nogc void set(ushort addr, ubyte value)
     {
         foreach (k, v; _writeCallbacks)
         {
@@ -63,6 +66,15 @@ public:
                 v(addr, value);
         }
         _memory[addr] = value;
+    }
+
+    /**
+     * Push the given value to the stack
+     */
+    @nogc void push(ubyte value)
+    {
+        set(0x1000 + cpu.sp, value);
+        cpu.sp--;
     }
 
     /**
@@ -121,9 +133,9 @@ private:
 
     /// List of callbacks to execute when reading certain addresses. Addresses
     /// are given as an inclusive range of values in a tuple.
-    nothrow @safe @nogc void delegate(ushort addr)[Tuple!(uint, uint)] _readCallbacks;
+    immutable nothrow @safe @nogc void delegate(ushort addr)[Tuple!(uint, uint)] _readCallbacks;
 
     /// List of callbacks to execute when writing to certain addresses.
     /// Addresses are given as an inclusive range of values in a tuple.
-    nothrow @nogc void delegate(ushort addr, ubyte value)[Tuple!(uint, uint)] _writeCallbacks;
+    immutable nothrow @nogc void delegate(ushort addr, ubyte value)[Tuple!(uint, uint)] _writeCallbacks;
 }

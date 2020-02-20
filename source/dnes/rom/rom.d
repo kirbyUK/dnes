@@ -9,7 +9,7 @@ import dnes.rom.mapper;
 /**
  * Class for parsing and manipulating INES ROM files
  */
-class ROM
+final class ROM
 {
 public:
     /**
@@ -21,12 +21,37 @@ public:
     {
         // Read the file
         auto file = File(path, "rb");
-        _data = new ubyte[file.size()];
+        auto _data = new ubyte[file.size()];
         const auto buf = file.rawRead(_data);
         file.close();
 
         header = cast(Header*) _data.ptr;
-        mapper = createMapper(mappingNumber());
+        mapper = createMapper(mappingNumber(), header, _data[Header.sizeof..$]);
+    }
+
+    /**
+     * Handlers for reads to the ROM's mapped address space
+     *
+     * Params:
+     *     addr = The address being read
+     *
+     * Returns: The value at the address, as determined by the mapper
+     */
+    nothrow @safe @nogc ubyte read(ushort addr) const
+    {
+        return mapper.read(addr);
+    }
+
+    /**
+     * Handler for writes to the ROM's mapped address space
+     *
+     * Params:
+     *     addr  = The address being written to
+     *     value = The value being written
+     */
+    nothrow @safe @nogc void write(ushort addr, ubyte value)
+    {
+        mapper.write(addr, value);
     }
 
     /**
@@ -60,15 +85,12 @@ public:
     /// The ROM's header
     Header* header;
 
-    /// The ROM's mapper
-    Mapper mapper;
-
 private:
-    const size_t _prgBankLen = 16384;
-    const size_t _chrBankLen = 8192;
-
     /// The raw data from the file
     ubyte[] _data;
+
+    /// The ROM's mapper
+    Mapper mapper;
 }
 
 // Export a global variable
