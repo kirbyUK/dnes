@@ -147,8 +147,8 @@ public:
 		I = 1 << 2, // Interrupt disable
 		D = 1 << 3, // Decimal mode
 		B = 1 << 4, // Break
-		V = 1 << 5, // Overflow
-		N = 1 << 6, // Negative
+		V = 1 << 6, // Overflow
+		N = 1 << 7, // Negative
 	}
 
 	/// Enumeration of interrupt types

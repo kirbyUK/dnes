@@ -20,7 +20,7 @@ public:
 	{
 		memory = new Memory();
 		cycles = 0;
-		scanline = 0;
+		scanline = 241;
 		_fiber = new Fiber(() => ppuRendering(this));
 	}
 

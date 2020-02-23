@@ -9,6 +9,7 @@ import std.typecons;
  */
 class Instruction
 {
+public:
     /**
      * Constructor
      *

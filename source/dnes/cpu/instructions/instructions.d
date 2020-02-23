@@ -20,7 +20,6 @@ void executeInstructions(CPU cpu, bool logging)
         const auto instruction = new Instruction(cpu.memory.get(cpu.pc));
         if (logging)
             logInstruction(instruction);
-        cpu.pc += 1;
         Fiber.yield();
 
         // Calculate the effective address
@@ -48,6 +47,9 @@ void executeInstructions(CPU cpu, bool logging)
 /**
  * Log the current instruction being executed, along with the CPU and PPU
  * states
+ *
+ * Params:
+ *     instruction = The instruction to log
  */
 void logInstruction(const Instruction instruction)
 {
@@ -64,6 +66,20 @@ void logInstruction(const Instruction instruction)
 }
 
 /**
+ * Determine if an updated address crosses a page boundary
+ *
+ * Params:
+ *     oldAddress = The previous address
+ *     newAddress = The newer address
+ *
+ * Returns: True if moving from the old to new address crosses a page boundary
+ */
+pure nothrow @safe @nogc bool crossesPageBoundary(ushort oldAddress, ushort newAddress)
+{
+    return (oldAddress & 0xff00) != (newAddress & 0xff00);
+}
+
+/**
  * Calculate the effective address the instruction is targeting, taking into
  * account the addressing mode.
  * Timings: <http://nesdev.com/6502_cpu.txt>
@@ -76,8 +92,10 @@ void logInstruction(const Instruction instruction)
 ushort calculateAddress(const Instruction instruction)
 {
     // Read the additional byte(s) needed for the instruction
+    const auto oldPc = cpu.pc;
     ubyte lo = 0;
     ubyte hi = 0;
+    cpu.pc += 1;
     switch (instruction.addressing)
     {
         case Addressing.IMP:
@@ -115,10 +133,14 @@ ushort calculateAddress(const Instruction instruction)
     // address that will be used by the instruction
     switch (instruction.addressing)
     {
-        case Addressing.ABS: return concat(hi, lo);
-        case Addressing.ZRP: return concat(0, lo);
-        case Addressing.INX: return (wrap!ushort(concat(hi, lo) + cpu.x));
-        case Addressing.INY: return (wrap!ushort(concat(hi, lo) + cpu.y));
+        case Addressing.ABS:
+            return concat(hi, lo);
+        case Addressing.ZRP:
+            return concat(0, lo);
+        case Addressing.INX:
+            return (wrap!ushort(concat(hi, lo) + cpu.x));
+        case Addressing.INY:
+            return (wrap!ushort(concat(hi, lo) + cpu.y));
         case Addressing.ZRX:
             const auto addrLo = cpu.memory.get(concat(0, lo));
             Fiber.yield();
@@ -153,8 +175,10 @@ ushort calculateAddress(const Instruction instruction)
             const auto addrHi = cpu.memory.get(wrap!ushort(pointer + 1));
             Fiber.yield();
             return concat(addrHi, addrLo);
-        case Addressing.REL: return wrap!ushort(cpu.pc + cast(byte)(lo));
-        case Addressing.IMM: return concat(0, lo);
+        case Addressing.REL:
+            return wrap!ushort(oldPc + cast(byte)(lo));
+        case Addressing.IMM:
+            return concat(0, lo);
         default: return 0;
     }
 }
@@ -178,7 +202,9 @@ ubyte addressValue(const Instruction instruction, ushort address)
     // with implied addressing do not need to access any further memory.
     ubyte value = 0;
     if ((instruction.addressing != Addressing.IMM) &&
-        (instruction.addressing != Addressing.IMP))
+        (instruction.addressing != Addressing.IMP) &&
+        (instruction.addressing != Addressing.ABS) &&
+        (instruction.addressing != Addressing.REL))
     {
         switch (instruction.opcode)
         {
@@ -194,6 +220,32 @@ ubyte addressValue(const Instruction instruction, ushort address)
     }
     else if (instruction.addressing == Addressing.IMM)
         value = address & 0x00ff;
+
+    // Check for page boundary crossings, and add an extra cycle if so:
+    if ((instruction.addressing == Addressing.INX) ||
+        (instruction.addressing == Addressing.INY) ||
+        (instruction.addressing == Addressing.IDY))
+    {
+        // Page boundary crossings in this context are only applicable to
+        // read instructions - ones that do not affect memory
+        switch (instruction.opcode)
+        {
+            case Opcode.ADC:
+            case Opcode.AND:
+            case Opcode.BIT:
+            case Opcode.CMP:
+            case Opcode.EOR:
+            case Opcode.LDA:
+            case Opcode.LDX:
+            case Opcode.LDY:
+            case Opcode.ORA:
+            case Opcode.SBC:
+                if (crossesPageBoundary(cpu.pc, address))
+                    Fiber.yield();
+                break;
+            default: break;
+        }
+    }
 
     return value;
 }
@@ -213,8 +265,9 @@ void executeInstruction(const Instruction instruction, ushort address, ubyte val
     switch (instruction.opcode)
     {
         case Opcode.ADC:  // Add with carry
-            cpu.acc += cpu.getFlag(CPU.Flag.C) ? value + 1 : value;
-            cpu.setFlag(CPU.Flag.C, cpu.acc < (accumulatorPrevious + cpu.getFlag(CPU.Flag.C) ? 1 : 0));
+            const ushort sum = cpu.acc + value + (cpu.getFlag(CPU.Flag.C) ? 1 : 0);
+            cpu.acc = sum & 0x00ff;
+            cpu.setFlag(CPU.Flag.C, sum > 0xff);
             cpu.setFlag(CPU.Flag.Z, cpu.acc == 0);
             cpu.setFlag(CPU.Flag.V, ((~(accumulatorPrevious ^ value)) & (accumulatorPrevious ^ cpu.acc) & 0x80) > 0);
             cpu.setFlag(CPU.Flag.N, (cpu.acc & 0x80) > 0);
@@ -229,13 +282,7 @@ void executeInstruction(const Instruction instruction, ushort address, ubyte val
         case Opcode.ASL:  // Arithmetic shift left
             const auto previousValueSignBit = (value & 0x80) >> 7;
             value <<= 1;
-            if (instruction.addressing != Addressing.IMP)
-            {
-                cpu.memory.set(address, value);
-                Fiber.yield();
-            }
-            else
-                cpu.acc = value;
+            writeInstruction(instruction, address, value);
             cpu.setFlag(CPU.Flag.C, previousValueSignBit > 0);
             cpu.setFlag(CPU.Flag.Z, value == 0);
             cpu.setFlag(CPU.Flag.N, (value & 0x80) > 0);
@@ -250,7 +297,7 @@ void executeInstruction(const Instruction instruction, ushort address, ubyte val
             break;
 
         case Opcode.BEQ:  // Branch if Equal
-            branchInstruction(address, !cpu.getFlag(CPU.Flag.Z));
+            branchInstruction(address, cpu.getFlag(CPU.Flag.Z));
             break;
 
         case Opcode.BIT:  // Bit Test
@@ -302,28 +349,258 @@ void executeInstruction(const Instruction instruction, ushort address, ubyte val
 
         case Opcode.CMP:  // Compare
             const auto test = cpu.acc - value;
-            cpu.setFlag(CPU.Flag.C, (cpu.acc >= test));
-            cpu.setFlag(CPU.Flag.Z, (test == 0));
-            cpu.setFlag(CPU.Flag.N, ((test & 0x80) > 0));
+            cpu.setFlag(CPU.Flag.C, cpu.acc >= value);
+            cpu.setFlag(CPU.Flag.Z, test == 0);
+            cpu.setFlag(CPU.Flag.N, (test & 0x80) > 0);
             break;
 
         case Opcode.CPX:  // Compare X Register
             const auto test = cpu.x - value;
-            cpu.setFlag(CPU.Flag.C, (cpu.x >= test));
-            cpu.setFlag(CPU.Flag.Z, (test == 0));
-            cpu.setFlag(CPU.Flag.N, ((test & 0x80) > 0));
+            cpu.setFlag(CPU.Flag.C, cpu.x >= value);
+            cpu.setFlag(CPU.Flag.Z, test == 0);
+            cpu.setFlag(CPU.Flag.N, (test & 0x80) > 0);
             break;
 
         case Opcode.CPY:  // Compare Y Register
             const auto test = cpu.y - value;
-            cpu.setFlag(CPU.Flag.C, (cpu.y >= test));
-            cpu.setFlag(CPU.Flag.Z, (test == 0));
-            cpu.setFlag(CPU.Flag.N, ((test & 0x80) > 0));
+            cpu.setFlag(CPU.Flag.C, cpu.y >= value);
+            cpu.setFlag(CPU.Flag.Z, test == 0);
+            cpu.setFlag(CPU.Flag.N, (test & 0x80) > 0);
             break;
+
+        case Opcode.DEC:  // Decrement Memory
+            const auto prevValue = cpu.memory.get(address);
+            const auto newValue = wrap!ubyte(prevValue - 1);
+            Fiber.yield();
+            cpu.memory.set(address, newValue);
+            Fiber.yield();
+            cpu.setFlag(CPU.Flag.Z, newValue == 0);
+            cpu.setFlag(CPU.Flag.N, (newValue & 0x80) > 0);
+            break;
+
+        case Opcode.DEX:  // Decrement X Register
+            cpu.x--;
+            cpu.setFlag(CPU.Flag.Z, cpu.x == 0);
+            cpu.setFlag(CPU.Flag.N, (cpu.x & 0x80) > 0);
+            break;
+
+        case Opcode.DEY:  // Decrement Y Register
+            cpu.y--;
+            cpu.setFlag(CPU.Flag.Z, cpu.y == 0);
+            cpu.setFlag(CPU.Flag.N, (cpu.y & 0x80) > 0);
+            break;
+
+        case Opcode.EOR:  // Exclusive OR
+            cpu.acc ^= value;
+            cpu.setFlag(CPU.Flag.Z, cpu.acc == 0);
+            cpu.setFlag(CPU.Flag.N, (cpu.acc & 0x80) > 0);
+            break;
+
+        case Opcode.INC:  // Increment Memory    
+            const auto prevValue = cpu.memory.get(address);
+            const auto newValue = wrap!ubyte(prevValue + 1);
+            Fiber.yield();
+            cpu.memory.set(address, newValue);
+            Fiber.yield();
+            cpu.setFlag(CPU.Flag.Z, newValue == 0);
+            cpu.setFlag(CPU.Flag.N, (newValue & 0x80) > 0);
+            break;
+
+        case Opcode.INX:  // Increment X Register
+            cpu.x++;
+            cpu.setFlag(CPU.Flag.Z, cpu.x == 0);
+            cpu.setFlag(CPU.Flag.N, (cpu.x & 0x80) > 0);
+            break;
+
+        case Opcode.INY:  // Increment Y Register
+            cpu.y++;
+            cpu.setFlag(CPU.Flag.Z, cpu.y == 0);
+            cpu.setFlag(CPU.Flag.N, (cpu.y & 0x80) > 0);
+            break;   
 
         case Opcode.JMP:  // Jump
             cpu.pc = address;
             break;
+
+        case Opcode.JSR:  // Jump to Subroutine
+            Fiber.yield();
+            const auto pc = wrap!ushort(cpu.pc - 1);
+            const auto pcHi = (pc & 0xff00) >> 8;
+            cpu.memory.push(pcHi);
+            Fiber.yield();
+            const auto pcLo = pc & 0x00ff;
+            cpu.memory.push(pcLo);
+            Fiber.yield();
+            cpu.pc = address;
+            break;
+
+        case Opcode.LDA:  // Load Accumulator
+            cpu.acc = value;
+            cpu.setFlag(CPU.Flag.Z, cpu.acc == 0);
+            cpu.setFlag(CPU.Flag.N, (cpu.acc & 0x80) > 0);
+            break;
+
+        case Opcode.LDX:  // Load X Register
+            cpu.x = value;
+            cpu.setFlag(CPU.Flag.Z, cpu.x == 0);
+            cpu.setFlag(CPU.Flag.N, (cpu.x & 0x80) > 0);
+            break;
+
+        case Opcode.LDY:  // Load Y Register
+            cpu.y = value;
+            cpu.setFlag(CPU.Flag.Z, cpu.y == 0);
+            cpu.setFlag(CPU.Flag.N, (cpu.y & 0x80) > 0);
+            break;
+
+        case Opcode.LSR:  // Arithmetic shift right
+            const auto previousValueLowBit = value & 0x01;
+            value >>= 1;
+            writeInstruction(instruction, address, value);
+            cpu.setFlag(CPU.Flag.C, previousValueLowBit > 0);
+            cpu.setFlag(CPU.Flag.Z, value == 0);
+            cpu.setFlag(CPU.Flag.N, (value & 0x80) > 0);
+            break;
+
+        case Opcode.ORA:  // Logical Inclusive OR
+            cpu.acc |= value;
+            cpu.setFlag(CPU.Flag.Z, cpu.acc == 0);
+            cpu.setFlag(CPU.Flag.N, (cpu.acc & 0x80) > 0);
+            break;
+
+        case Opcode.PHA:  // Push Accumulator
+            cpu.memory.push(cpu.acc);
+            Fiber.yield();
+            break;
+
+        case Opcode.PHP:  // Push Processor Status
+            cpu.memory.push(cpu.status | 0x30);
+            Fiber.yield();
+            break;
+
+        case Opcode.PLA:  // Pull Accumulator
+            cpu.acc = cpu.memory.pop();
+            Fiber.yield();
+            Fiber.yield();
+            cpu.setFlag(CPU.Flag.Z, cpu.acc == 0);
+            cpu.setFlag(CPU.Flag.B, false);
+            cpu.setFlag(CPU.Flag.N, (cpu.acc & 0x80) > 0);
+            break;
+
+        case Opcode.PLP:  // Pull Processor Status
+            cpu.status = cpu.memory.pop();
+            Fiber.yield();
+            Fiber.yield();
+            cpu.setFlag(CPU.Flag.B, false);
+            break;
+
+        case Opcode.ROL:  // Rotate Left
+            const auto oldHighBit = (value & 0x80) >> 7;
+            const auto rotated = ((value << 1) | cpu.getFlag(CPU.Flag.C) ? 1 : 0);
+            writeInstruction(instruction, address, value);
+            cpu.setFlag(CPU.Flag.C, oldHighBit > 0);
+            cpu.setFlag(CPU.Flag.Z, rotated == 0);
+            cpu.setFlag(CPU.Flag.N, (rotated & 0x80) > 0);
+            break;
+
+        case Opcode.ROR:  // Rotate Right
+            const auto oldLowBit = value & 0x01;
+            const auto rotated = ((value >> 1) | cpu.getFlag(CPU.Flag.C) ? 0x80 : 0);
+            writeInstruction(instruction, address, value);
+            cpu.setFlag(CPU.Flag.C, oldLowBit > 0);
+            cpu.setFlag(CPU.Flag.Z, rotated == 0);
+            cpu.setFlag(CPU.Flag.N, (rotated & 0x80) > 0);
+            break;
+
+        case Opcode.RTI:  // Return from Interrupt
+            cpu.status = cpu.memory.pop();
+            Fiber.yield();
+            const auto pcLo = cpu.memory.pop();
+            Fiber.yield();
+            const auto pcHi = cpu.memory.pop();
+            Fiber.yield();
+            cpu.pc = concat(pcHi, pcLo);
+            break;
+
+        case Opcode.RTS:  // Return from Subroutine
+            Fiber.yield();
+            const auto pcLo = cpu.memory.pop();
+            Fiber.yield();
+            const auto pcHi = cpu.memory.pop();
+            Fiber.yield();
+            cpu.pc = concat(pcHi, pcLo);
+            Fiber.yield();
+            cpu.pc += 1;
+            break;
+
+        case Opcode.SBC:  // Subtract with Carry
+            const ushort sum = cpu.acc + ~value + (cpu.getFlag(CPU.Flag.C) ? 1 : 0);
+            cpu.acc = sum & 0x00ff;
+            cpu.setFlag(CPU.Flag.C, sum > 0xff);
+            cpu.setFlag(CPU.Flag.Z, cpu.acc == 0);
+            cpu.setFlag(CPU.Flag.V, ((~(accumulatorPrevious ^ value)) & (accumulatorPrevious ^ cpu.acc) & 0x80) > 0);
+            cpu.setFlag(CPU.Flag.N, (cpu.acc & 0x80) > 0);
+            break;
+
+        case Opcode.SEC:  // Set Carry Flag
+            cpu.setFlag(CPU.Flag.C, true);
+            break;
+
+        case Opcode.SED:  // Set Decimal Flag
+            cpu.setFlag(CPU.Flag.D, true);
+            break;
+
+        case Opcode.SEI:  // Set Interrupt Disable
+            cpu.setFlag(CPU.Flag.I, true);
+            break;
+
+        case Opcode.STA:  // Store Accumulator
+            cpu.memory.set(address, cpu.acc);
+            Fiber.yield();
+            break;
+
+        case Opcode.STX:  // Store X Register
+            cpu.memory.set(address, cpu.x);
+            Fiber.yield();
+            break;
+
+        case Opcode.STY:  // Store Y Register
+            cpu.memory.set(address, cpu.y);
+            Fiber.yield();
+            break;
+
+        case Opcode.TAX:  // Transfer Accumulator to X
+            cpu.x = cpu.acc;
+            cpu.setFlag(CPU.Flag.Z, cpu.x == 0);
+            cpu.setFlag(CPU.Flag.N, (cpu.x & 0x80) > 0);
+            break;
+
+        case Opcode.TAY:  // Transfer Accumulator to Y
+            cpu.y = cpu.acc;
+            cpu.setFlag(CPU.Flag.Z, cpu.y == 0);
+            cpu.setFlag(CPU.Flag.N, (cpu.y & 0x80) > 0);
+            break;
+
+        case Opcode.TSX:  // Transfer Stack Pointer to X
+            cpu.x = cpu.sp;
+            cpu.setFlag(CPU.Flag.Z, cpu.x == 0);
+            cpu.setFlag(CPU.Flag.N, (cpu.x & 0x80) > 0);
+            break;
+
+        case Opcode.TXA:  // Transfer X to Accumulator
+            cpu.acc = cpu.x;
+            cpu.setFlag(CPU.Flag.Z, cpu.acc == 0);
+            cpu.setFlag(CPU.Flag.N, (cpu.acc & 0x80) > 0);
+            break;
+
+        case Opcode.TXS:  // Transfer X to Stack Pointer
+            cpu.sp = cpu.x;
+            break;
+
+        case Opcode.TYA:  // Transfer Y to Accumulator
+            cpu.acc = cpu.y;
+            cpu.setFlag(CPU.Flag.Z, cpu.acc == 0);
+            cpu.setFlag(CPU.Flag.N, (cpu.acc & 0x80) > 0);
+            break;       
 
         default: break;
     }
@@ -389,6 +666,27 @@ void handleInterrupt()
 }
 
 /**
+ * Common code for all instructions that could write to a memory address or
+ * the accumulator, depending on the addressing mode
+ *
+ * Params:
+ *     instruction = The instruction being executed
+ *     address     = The address determined from the instruction
+ *     value       = The value to write
+ */
+pragma(inline, true)
+void writeInstruction(const Instruction instruction, ushort address, ubyte value)
+{
+    if (instruction.addressing != Addressing.IMP)
+    {
+        cpu.memory.set(address, value);
+        Fiber.yield();
+    }
+    else
+        cpu.acc = value;
+}
+
+/**
  * Common code for all branching instructions
  *
  * Params:
@@ -400,8 +698,10 @@ void branchInstruction(ushort addr, bool condition)
 {
     if (condition)
     {
-        // cross page boundary check
-        cpu.pc = wrap!ushort(addr + 2);
+        const auto branchedAddress = wrap!ushort(addr + 2);
+        if (crossesPageBoundary(cpu.pc, branchedAddress))
+            Fiber.yield();
+        cpu.pc = branchedAddress;
         Fiber.yield();
     }
 }

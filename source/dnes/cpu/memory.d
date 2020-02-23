@@ -78,13 +78,22 @@ public:
     }
 
     /**
+     * Pop a value from the stack
+     */
+    @safe @nogc ubyte pop()
+    {
+        cpu.sp++;
+        return get(0x1000 + cpu.sp);
+    }
+
+    /**
      * Overload of the index operator that allows for direct access to the
      * memory with no side effects
      */    
     nothrow @safe @nogc const(ubyte) opIndex(size_t index) const
     in (index >= 0 && index < _memorySize)
     {
-        return _memory[index];
+        return (index < 0x4020) ?_memory[index] : rom.read(cast (ushort) index);
     }
 
     /**

@@ -45,6 +45,7 @@ void callFiber(Fiber fiber)
     while (fiber.state != Fiber.State.TERM)
     {
         fiber.call();
-        Fiber.yield();
+        if (fiber.state != Fiber.State.TERM)
+            Fiber.yield();
     }
 }
