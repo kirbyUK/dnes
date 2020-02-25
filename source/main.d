@@ -11,10 +11,10 @@ import dnes.rom;
  */
 void usage(string self, GetoptResult result)
 {
-	defaultGetoptPrinter(
-		"\n" ~ self ~ ": [OPTIONS] /path/to/rom.nes",
-		result.options
-	);
+    defaultGetoptPrinter(
+        "\n" ~ self ~ ": [OPTIONS] /path/to/rom.nes",
+        result.options
+    );
 }
 
 /**
@@ -28,58 +28,58 @@ void usage(string self, GetoptResult result)
  */
 Tuple!(bool, string, bool) processArgs(string[] args)
 {
-	auto log = false;
-	auto result = getopt(args, "log", "Enable logging", &log);
-	if (result.helpWanted)
-	{
-		usage(args[0], result);
-		return tuple(true, "", false);
-	}
-	else if (args.length < 2)
-	{
-		writefln("Please supply a single ROM as an argument");
-		return tuple(true, "", false);
-	}
-	else
-	{
-		return tuple(false, args[1], log);
-	}
+    auto log = false;
+    auto result = getopt(args, "log", "Enable logging", &log);
+    if (result.helpWanted)
+    {
+        usage(args[0], result);
+        return tuple(true, "", false);
+    }
+    else if (args.length < 2)
+    {
+        writefln("Please supply a single ROM as an argument");
+        return tuple(true, "", false);
+    }
+    else
+    {
+        return tuple(false, args[1], log);
+    }
 }
 
 int main(string[] args)
 {
-	// Process commandline arguments
-	immutable auto arg = processArgs(args);
-	if (arg[0])
-		return 1;
+    // Process commandline arguments
+    immutable auto arg = processArgs(args);
+    if (arg[0])
+        return 1;
 
-	// initialise sdl2
-	// initialise screen
-	
-	// Load the ROM from the given file
-	rom = new ROM(arg[1]);
+    // initialise sdl2
+    // initialise screen
 
-	// Run the emulation
-	auto ret = 0;
-	cpu = new CPU(arg[2]);
-	ppu = new PPU();
-	try
-	{
-		while (true)
-		{
-			cpu.tick();
-			ppu.tick();
-			ppu.tick();
-			ppu.tick();
-		}
-	}
-	catch (UnknownInstructionException e)
-	{
-		writeln(e.msg);
-		ret = 1;
-	}
+    // Load the ROM from the given file
+    rom = new ROM(arg[1]);
 
-	// sdl cleanup
+    // Run the emulation
+    auto ret = 0;
+    cpu = new CPU(arg[2]);
+    ppu = new PPU();
+    try
+    {
+        while (true)
+        {
+            cpu.tick();
+            ppu.tick();
+            ppu.tick();
+            ppu.tick();
+        }
+    }
+    catch (UnknownInstructionException e)
+    {
+        writeln(e.msg);
+        ret = 1;
+    }
 
-	return ret;
+    // sdl cleanup
+
+    return ret;
 }
