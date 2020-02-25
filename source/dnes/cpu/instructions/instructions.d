@@ -674,7 +674,6 @@ void handleInterrupt()
  *     address     = The address determined from the instruction
  *     value       = The value to write
  */
-pragma(inline, true)
 void writeInstruction(const Instruction instruction, ushort address, ubyte value)
 {
     if (instruction.addressing != Addressing.IMP)
@@ -693,7 +692,6 @@ void writeInstruction(const Instruction instruction, ushort address, ubyte value
  *     addr      = The effective address of the instruction
  *     condition = The condition that will cause the branch if true
  */
-pragma(inline, true)
 void branchInstruction(ushort addr, bool condition)
 {
     if (condition)

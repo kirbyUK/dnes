@@ -32,14 +32,11 @@ pure nothrow @safe @nogc T wrap(T)(uint x)
 /**
  * Wraps a Fiber to continously call it and then yield when it does. This
  * allows a main Fiber to call sub-Fibers, and jump back up to the main Fiber's
- * caller when an inner one yields. For this reason, the function must be
- * inlined, otherwise control would still return to the main Fiber rather than
- * the caller
+ * caller when an inner one yields.
  *
  * Params:
  *     fiber = The Fiber to call
  */
-pragma(inline, true)
 void callFiber(Fiber fiber)
 {
     while (fiber.state != Fiber.State.TERM)
