@@ -3,6 +3,7 @@ module dnes.ppu.ppu;
 import core.thread;
 import std.format;
 
+import dnes.cpu;
 import dnes.ppu.memory;
 import dnes.ppu.oam;
 import dnes.ppu.rendering;
@@ -40,6 +41,72 @@ public:
     }
 
     /**
+     * Called when an instruction writes to PPUSCROLL ($2005)
+     *
+     * Params:
+     *     value = The value written to PPUSCROLL
+     */
+    nothrow @safe @nogc void ppuScrollWrite(ubyte value)
+    {
+        if (!w)
+        {
+            // First write (w = 0)
+            // t: ........ ...HGFED = d: HGFED...
+			// x:               CBA = d: .....CBA
+			// w:                   = 1
+            t = (t & 0xffe0) | (value >> 3);
+            x = value & 0x0007;
+            w = true;
+        }
+        else
+        {
+            // Second write (w = 1)
+            // t: .CBA..HG FED..... = d: HGFEDCBA
+			// w:                   = 0
+            t = (t & 0x8FFF) | ((value & 0x03) << 12);
+			t = (t & 0xFCFF) | ((value & 0xC0) << 2);
+			t = (t & 0xFF1F) | ((value & 0x38) << 2);
+            w = false;
+        }
+    }
+
+    /**
+     * Called when an instruction writes to PPUADDR ($2006)
+     *
+     * Params:
+     *     value = The value written to PPUADDR
+     */
+    nothrow @safe @nogc void ppuAddrWrite(ubyte value)
+    {
+        if (!w)
+        {
+            // First write (w = 0)
+            // t: ..FEDCBA ........ = d: ..FEDCBA
+            // t: .X...... ........ = 0
+            // w:                   = 1
+            t = (t & 0xbf00) | ((value & 0x3f) << 8);
+            w = true;
+        }
+        else
+        {
+            // t: ....... HGFEDCBA = d: HGFEDCBA
+            // v                   = t
+            // w:                  = 0
+            t = (t & 0xff00) | value;
+            v = t;
+            w = false;
+        }
+    }
+
+    /**
+     * Returns: The VRAM increment amount. Determined by bit 2 of PPUCTRL
+     */
+    nothrow @safe @nogc ushort vramAddressIncrement() const
+    {
+        return (cpu.memory[ppuCtrl] & 0x04) > 0 ? 32 : 1;
+    }
+
+    /**
      * Returns: The PPU state as a string
      */
     override @safe string toString() const
@@ -66,6 +133,16 @@ public:
     bool   w; /// First or second write toggle
 
 private:
+    // PPU register constants
+    const ushort ppuCtrl   = 0x2000;
+    const ushort ppuMask   = 0x2001;
+    const ushort ppuStatus = 0x2002;
+    const ushort oamAddr   = 0x2003;
+    const ushort oamData   = 0x2004;
+    const ushort ppuScroll = 0x2005;
+    const ushort ppuAddr   = 0x2006;
+    const ushort ppuData   = 0x2007;
+
     Fiber _fiber;
 }
 

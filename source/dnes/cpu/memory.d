@@ -21,8 +21,13 @@ public:
             // Reading PPUSTATUS clears the vblank flag and the PPU's internal write toggle
             tuple(0x2002u, 0x2002u): (ushort) { _memory[0x2002] &= 0x7F; ppu.w = false; },
 
-            // Reading PPUADDR increments PPUADDR
-            tuple(0x2007u, 0x2007u): (ushort) { },
+            // Reading PPUADDR retrieves the value from PPU memory according to
+            // the PPU's internal pointer, which is set by writing to PPUADDR.
+            // It then increments the address
+            tuple(0x2007u, 0x2007u): (ushort addr) { 
+                _memory[addr] = ppu.memory[ppu.v];
+                ppu.v += ppu.vramAddressIncrement();
+            },
 
             // Reading JOY1 gets the next button status
             tuple(0x4016u, 0x4016u): (ushort) { _memory[0x4016] = 0; },
@@ -32,6 +37,25 @@ public:
         ];
 
         _writeCallbacks = [
+            // Writing to PPUCTRL also sets the namespace select in the PPU's
+            // temporary VRAM address
+            tuple(0x2000u, 0x2000u): (ushort, ubyte value) { ppu.t = (ppu.t & 0xf3ff) | (value & 0x03); },
+
+            // Writes to PPUSCROLL set the X then Y scroll positions
+            tuple(0x2005u, 0x2005u): (ushort, ubyte value) { ppu.ppuScrollWrite(value); },
+
+            // Writes to PPUADDR set the address for the data in PPUDATA, in
+            // two stages
+            tuple(0x2006u, 0x2006u): (ushort, ubyte value) { ppu.ppuAddrWrite(value); },
+
+            // Writes to PPUDATA set the value written to the PPU's internal
+            // memory - the address is determined by writes to PPUADDR. It then
+            // increments the internal address
+            tuple(0x2007u, 0x2007u): (ushort, ubyte value) {
+                ppu.memory[ppu.v] = value;
+                ppu.v += ppu.vramAddressIncrement();
+            },
+
             // Writes to OAMDMA cause the CPU to enter DMA
             tuple(0x4014u, 0x4014u): (ushort, ubyte) { cpu.dma = true; },
 
