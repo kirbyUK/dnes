@@ -10,23 +10,42 @@ import dnes.rom.mapper.mapper0;
 interface Mapper
 {
     /**
-     * Called when a read to the mapper is made
+     * Called when a read to the mapper is made by the CPU
      *
      * Params:
      *     addr = The address being read
      *
-     * Returns: The data at the address
+     * Returns: The data at the address in PRG-ROM
      */
-    nothrow @safe @nogc ubyte read(ushort addr) const;
+    nothrow @safe @nogc ubyte cpuRead(ushort addr) const;
 
     /**
-     * Called when the mapper is written to
+     * Called when the mapper is written to by the CPU
      *
      * Params:
      *     addr  = The address that was requested be written to
      *     value = The value that was requested be written
      */
-    nothrow @safe @nogc void write(ushort addr, ubyte value);
+    nothrow @safe @nogc void cpuWrite(ushort addr, ubyte value);
+
+    /**
+     * Called when a read to the mapper is made by the PPU
+     *
+     * Params:
+     *     addr  = The address being read
+     *
+     * Returns: The data at the address in CHR-ROM
+     */
+    nothrow @safe @nogc ubyte ppuRead(ushort addr) const;
+
+    /**
+     * Called when the mapper is written to by the PPU
+     *
+     * Params:
+     *     addr  = The address that was requested be written to
+     *     value = The value that was requested be written
+     */
+    nothrow @safe @nogc void ppuWrite(ushort addr, ubyte value);
 }
 
 /**

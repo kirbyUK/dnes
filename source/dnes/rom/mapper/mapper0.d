@@ -39,7 +39,7 @@ public:
     }
 
     /**
-     * Reads memory from Mapper 0
+     * Reads PRG-ROM memory from Mapper 0
      *
      * Params:
      *     addr = The address the CPU requested
@@ -47,7 +47,7 @@ public:
      * Returns: Memory from the ROM, pulled from a bank based on the address
      *          given. Reads from the save game area ($4020-$7FFF) return zero
      */
-    override nothrow @safe @nogc ubyte read(ushort addr) const
+    override nothrow @safe @nogc ubyte cpuRead(ushort addr) const
     {
         if ((addr >= chrBankOffset) && (addr < prgBank1Offset))
             return _chrBank[addr - chrBankOffset];
@@ -62,7 +62,27 @@ public:
     /**
      * Mapper 0 does nothing when written to
      */
-    override nothrow @safe @nogc void write(ushort addr, ubyte value)
+    override nothrow @safe @nogc void cpuWrite(ushort addr, ubyte value)
+    {
+    }
+
+    /**
+     * Reads CHR-ROM memory from Mapper 0
+     *
+     * Params:
+     *     addr = The address the CPU requested
+     *
+     * Returns: The byte at the given address in the CHR-ROM
+     */
+    override nothrow @safe @nogc ubyte ppuRead(ushort addr) const
+    {
+        return _chrBank[addr];
+    }
+
+    /**
+     * Mapper 0 does nothing when written to
+     */
+    override nothrow @safe @nogc void ppuWrite(ushort addr, ubyte value)
     {
     }
 

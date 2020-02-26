@@ -28,7 +28,7 @@ public:
             tuple(0x4016u, 0x4016u): (ushort) { _memory[0x4016] = 0; },
 
             // Reads to ROM spaced are passed to the ROM to deal with
-            tuple(0x4020u, 0xffffu): (ushort addr) { _memory[addr] = rom.read(addr); }
+            tuple(0x4020u, 0xffffu): (ushort addr) { _memory[addr] = rom.cpuRead(addr); }
         ];
 
         _writeCallbacks = [
@@ -36,7 +36,7 @@ public:
             tuple(0x4014u, 0x4014u): (ushort, ubyte) { cpu.dma = true; },
 
             // Writes to the ROM are passed to it
-            tuple(0x4020u, 0xffffu): (ushort addr, ubyte value) { rom.write(addr, value); },
+            tuple(0x4020u, 0xffffu): (ushort addr, ubyte value) { rom.cpuWrite(addr, value); },
         ];
     }
 
@@ -93,7 +93,7 @@ public:
     nothrow @safe @nogc const(ubyte) opIndex(size_t index) const
     in (index >= 0 && index < _memorySize)
     {
-        return (index < 0x4020) ?_memory[index] : rom.read(cast (ushort) index);
+        return (index < 0x4020) ?_memory[index] : rom.cpuRead(cast (ushort) index);
     }
 
     /**

@@ -30,28 +30,53 @@ public:
     }
 
     /**
-     * Handlers for reads to the ROM's mapped address space
+     * Handler for reads to the ROM's mapped address space by the CPU
      *
      * Params:
      *     addr = The address being read
      *
      * Returns: The value at the address, as determined by the mapper
      */
-    nothrow @safe @nogc ubyte read(ushort addr) const
+    nothrow @safe @nogc ubyte cpuRead(ushort addr) const
     {
-        return mapper.read(addr);
+        return mapper.cpuRead(addr);
     }
 
     /**
-     * Handler for writes to the ROM's mapped address space
+     * Handler for writes to the ROM's mapped address space by the CPU
      *
      * Params:
      *     addr  = The address being written to
      *     value = The value being written
      */
-    nothrow @safe @nogc void write(ushort addr, ubyte value)
+    nothrow @safe @nogc void cpuWrite(ushort addr, ubyte value)
     {
-        mapper.write(addr, value);
+        mapper.cpuWrite(addr, value);
+    }
+
+    /**
+     * Handler for reads to the ROM's mapped address space by the PPU
+     *
+     * Params:
+     *     addr = The address being read
+     *
+     * Returns: The value at the address, as determined by the mapper
+     */
+    nothrow @safe @nogc ubyte ppuRead(ushort addr) const
+    {
+        return mapper.ppuRead(addr);
+    }
+
+    /**
+     * Handler for writes to the ROM's mapped address space by the PPU
+     *
+     * Params:
+     *     addr  = The address being written to
+     *     value = The value being written
+     */
+    nothrow @safe @nogc void ppuWrite(ushort addr, ubyte value)
+    {
+        mapper.ppuWrite(addr, value);
     }
 
     /**
