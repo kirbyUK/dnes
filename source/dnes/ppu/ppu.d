@@ -100,7 +100,7 @@ public:
     }
 
     /**
-     * Returns: The VRAM increment amount. Determined by bit 2 of PPUCTRL
+     * Returns: The VRAM increment amount
      */
     nothrow @safe @nogc ushort vramAddressIncrement() const
     {
@@ -108,8 +108,7 @@ public:
     }
 
     /**
-     * Returns: The base address of the sprite pattern table being used.
-     *          Determined by bit 4 of PPUCTRL
+     * Returns: The base address of the sprite pattern table being used
      */
     nothrow @safe @nogc ushort spritePatternTableAddress() const
     {
@@ -117,12 +116,27 @@ public:
     }
 
     /**
-     * Returns: If an NMI should be generated on VBLANK. Controlled by bit 8 of
-     *          PPUCTRL
+     * Returns: If an NMI should be generated on VBLANK
      */
     nothrow @safe @nogc bool nmiOnVblank() const
     {
         return (cpu.memory[ppuCtrl] & 0x80) > 0;
+    }
+
+    /**
+     * Returns: If the PPU has background rendering enabled or not
+     */
+    nothrow @safe @nogc bool renderBackground() const
+    {
+        return (cpu.memory[ppuMask] & 0x08) > 0;
+    }
+
+    /**
+     * Returns: If the PPU has sprite rendering enabled or not
+     */
+    nothrow @safe @nogc bool renderSprites() const
+    {
+        return (cpu.memory[ppuMask] & 0x10) > 0;
     }
 
     /**

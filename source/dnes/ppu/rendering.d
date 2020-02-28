@@ -81,40 +81,46 @@ void ppuRendering(PPU ppu)
  */
 void scanline(bool prerender)
 {
-    // Cycle 1 is the first cycle handled by this function - the idle cycle is
-    // dealt with in the parent function. If the scanline is the prerender
-    // scanline, then on cycle 1 the VBlank and Sprite 0 hit flags are unset
-    if (prerender)
+    // Only perform the memory access and v increments if rendering is enabled
+    if ((ppu.renderBackground()) || (ppu.renderSprites()))
     {
-        cpu.memory[0x2002] = cpu.memory[0x2002] & 0x3f;
+        // Cycle 1 is the first cycle handled by this function - the idle cycle is
+        // dealt with in the parent function. If the scanline is the prerender
+        // scanline, then on cycle 1 the VBlank and Sprite 0 hit flags are unset
+        if (prerender)
+            cpu.memory[0x2002] = cpu.memory[0x2002] & 0x3f;
+
+        // Fetches data for each tile on this scanline, except for the first two,
+        // which were fetched on the previous scanline
+        assert(ppu.cycles == 1);
+        foreach (i; 0 .. 32)
+            callFiber(new Fiber(&tileDataFetch));
+
+        // At dot 257, the PPU copies all bits related to horizontal position from
+        // t to v. The PPU then fetches tile data for the sprites on the next
+        // scanline
+        assert(ppu.cycles == 257);
+        ppu.v = (ppu.v & 0xfbe0) | (ppu.t & 0x041f);
+        foreach (i; 0 .. 64)
+            Fiber.yield();
+
+        // Increment vertical v - this is meant to happen at cycle 256
+        incrementFineYInVramAddr();
+
+        // Fetches the first two tiles of the next scanline
+        assert(ppu.cycles == 321);
+        foreach (i; 0 .. 2)
+            callFiber(new Fiber(&tileDataFetch));
+
+        // Two dummy nametable byte fetches are done here
+        assert(ppu.cycles == 337);
+        foreach (i; 0 .. 4)
+            Fiber.yield();
     }
-
-    // Fetches data for each tile on this scanline, except for the first two,
-    // which were fetched on the previous scanline
-    assert(ppu.cycles == 1);
-    foreach (i; 0 .. 32)
-        callFiber(new Fiber(&tileDataFetch));
-
-    // At dot 257, the PPU copies all bits related to horizontal position from
-    // t to v. The PPU then fetches tile data for the sprites on the next
-    // scanline
-    assert(ppu.cycles == 257);
-    ppu.v = (ppu.v & 0xfbe0) | (ppu.t & 0x041f);
-    foreach (i; 0 .. 64)
-        Fiber.yield();
-
-    // Increment vertical v - this is meant to happen at cycle 256
-    incrementFineYInVramAddr();
-
-    // Fetches the first two tiles of the next scanline
-    assert(ppu.cycles == 321);
-    foreach (i; 0 .. 2)
-        callFiber(new Fiber(&tileDataFetch));
-
-    // Two dummy nametable byte fetches are done here
-    assert(ppu.cycles == 337);
-    foreach (i; 0 .. 4)
-        Fiber.yield();
+    else
+        // If rendering is disabled, then there is nothing to do
+        foreach (i; 0 .. 340)
+            Fiber.yield();
 }
 
 /**

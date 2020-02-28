@@ -37,7 +37,7 @@ void executeInstructions(CPU cpu, bool logging)
         // if there are any. The BRK and IRQ interrupts are maskable, so do not
         // execute if the interrupt disable flag is set.
         if ((cpu.interrupt != CPU.Interrupt.NONE) &&
-            (!(cpu.interrupt <= CPU.Interrupt.IRQ) && (cpu.getFlag(CPU.Flag.I))))
+            (!(cpu.interrupt <= CPU.Interrupt.IRQ && cpu.getFlag(CPU.Flag.I))))
         {
             callFiber(new Fiber(&handleInterrupt));
             cpu.resetInterrupt();
