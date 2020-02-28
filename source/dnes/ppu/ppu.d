@@ -21,7 +21,7 @@ public:
     {
         memory = new Memory();
         cycles = 0;
-        scanline = 241;
+        scanline = 0;
         _fiber = new Fiber(() => ppuRendering(this));
     }
 
@@ -114,6 +114,15 @@ public:
     nothrow @safe @nogc ushort spritePatternTableAddress() const
     {
         return (cpu.memory[ppuCtrl] & 0x08) > 0 ? 0x1000 : 0x0000;
+    }
+
+    /**
+     * Returns: If an NMI should be generated on VBLANK. Controlled by bit 8 of
+     *          PPUCTRL
+     */
+    nothrow @safe @nogc bool nmiOnVblank() const
+    {
+        return (cpu.memory[ppuCtrl] & 0x80) > 0;
     }
 
     /**

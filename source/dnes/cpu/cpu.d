@@ -6,6 +6,7 @@ import std.format;
 import dnes.cpu.dma;
 import dnes.cpu.instructions;
 import dnes.cpu.memory;
+import dnes.util;
 
 /**
  * The NES CPU - controls instruction execution, main memory, etc.
@@ -24,7 +25,7 @@ public:
         _interrupt = Interrupt.NONE;
 
         // Initial register states
-        pc = 0xC000;
+        pc = concat(memory[0xfffd], memory[0xfffc]);
         sp = 0xFD;
         acc = 0;
         x = 0;
@@ -75,6 +76,14 @@ public:
             status |= flag;
         else
             status &= ~flag;
+    }
+
+    /**
+     * Resets the current CPU interrupt
+     */
+    nothrow @safe @nogc void resetInterrupt()
+    {
+        _interrupt = Interrupt.NONE;
     }
 
     /**

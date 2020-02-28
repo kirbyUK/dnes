@@ -40,6 +40,7 @@ void executeInstructions(CPU cpu, bool logging)
             (!(cpu.interrupt <= CPU.Interrupt.IRQ) && (cpu.getFlag(CPU.Flag.I))))
         {
             callFiber(new Fiber(&handleInterrupt));
+            cpu.resetInterrupt();
         }
     }
 }
@@ -203,7 +204,6 @@ ubyte addressValue(const Instruction instruction, ushort address)
     ubyte value = 0;
     if ((instruction.addressing != Addressing.IMM) &&
         (instruction.addressing != Addressing.IMP) &&
-        (instruction.addressing != Addressing.ABS) &&
         (instruction.addressing != Addressing.REL))
     {
         switch (instruction.opcode)
@@ -369,8 +369,7 @@ void executeInstruction(const Instruction instruction, ushort address, ubyte val
             break;
 
         case Opcode.DEC:  // Decrement Memory
-            const auto prevValue = cpu.memory.get(address);
-            const auto newValue = wrap!ubyte(prevValue - 1);
+            const ubyte newValue = cast(ubyte)(value - 1);
             Fiber.yield();
             cpu.memory.set(address, newValue);
             Fiber.yield();
@@ -657,11 +656,17 @@ void handleInterrupt()
 
     // The final two cycles fetch the new address from the interrupt
     // vector and set it to the PC
-    const ushort interruptVector = 0xfffe;
-    cpu.pc = (cpu.memory.get(interruptVector) << 8) & 0xff00;
+    const ushort[CPU.Interrupt] interruptVectors = [
+        CPU.Interrupt.NMI:   0xfffa,
+        CPU.Interrupt.RESET: 0xfffc,
+        CPU.Interrupt.IRQ:   0xfffe,
+        CPU.Interrupt.BRK:   0xfffe,
+    ];
+    const auto interruptVector = interruptVectors[cpu.interrupt];
+    cpu.pc = 0x0000 | cpu.memory.get(interruptVector);
     cpu.setFlag(CPU.Flag.I, true);
     Fiber.yield();
-    cpu.pc |= cpu.memory.get(interruptVector + 1);
+    cpu.pc |= cpu.memory.get(wrap!ushort((interruptVector + 1))) << 8;
     Fiber.yield();
 }
 

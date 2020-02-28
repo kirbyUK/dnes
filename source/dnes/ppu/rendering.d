@@ -54,7 +54,11 @@ void ppuRendering(PPU ppu)
             // sets the VBlank flag on cycle 1 of scanline 241
             Fiber.yield();
             if (ppu.scanline == 241)
+            {
                 cpu.memory[0x2002] = cpu.memory[0x2002] | 0x80;
+                if (ppu.nmiOnVblank())
+                    cpu.interrupt = CPU.Interrupt.NMI;
+            }
             Fiber.yield();
             foreach (i; 0 .. 339)
                 Fiber.yield();
@@ -82,8 +86,7 @@ void scanline(bool prerender)
     // scanline, then on cycle 1 the VBlank and Sprite 0 hit flags are unset
     if (prerender)
     {
-        cpu.memory[0x2002] = cpu.memory[0x2002] & 0x40; // Sprite 0 hit
-        cpu.memory[0x2002] = cpu.memory[0x2002] & 0x80; // VBlank
+        cpu.memory[0x2002] = cpu.memory[0x2002] & 0x3f;
     }
 
     // Fetches data for each tile on this scanline, except for the first two,

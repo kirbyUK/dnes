@@ -95,7 +95,7 @@ public:
 
 private:
     /// The memory of the NES PPU
-    const size_t _memorySize = 0x4000;
+    immutable size_t _memorySize = 0x4000;
     ubyte[_memorySize] _memory;
 
     /// List of callbacks to execute when reading certain addresses. Addresses

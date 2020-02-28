@@ -17,10 +17,7 @@ public:
      */
     nothrow @safe this()
     {
-        _readCallbacks = [
-            // Reading PPUSTATUS clears the vblank flag and the PPU's internal write toggle
-            tuple(0x2002u, 0x2002u): (ushort) { _memory[0x2002] &= 0x7F; ppu.w = false; },
-
+        _preReadCallbacks = [
             // Reading PPUADDR retrieves the value from PPU memory according to
             // the PPU's internal pointer, which is set by writing to PPUADDR.
             // It then increments the address
@@ -34,6 +31,11 @@ public:
 
             // Reads to ROM spaced are passed to the ROM to deal with
             tuple(0x4020u, 0xffffu): (ushort addr) { _memory[addr] = rom.cpuRead(addr); }
+        ];
+
+        _postReadCallbacks = [
+            // Reading PPUSTATUS clears the vblank flag and the PPU's internal write toggle
+            tuple(0x2002u, 0x2002u): (ushort) { _memory[0x2002] &= 0x7f; ppu.w = false; },
         ];
 
         _writeCallbacks = [
@@ -70,12 +72,21 @@ public:
      */
     @safe @nogc ubyte get(ushort addr)
     {
-        foreach (k, v; _readCallbacks)
+        foreach (k, v; _preReadCallbacks)
         {
             if ((addr >= k[0]) && (addr <= k[1]))
                 v(addr);
         }
-        return _memory[addr];
+
+        const auto ret = _memory[addr];
+
+        foreach (k, v; _postReadCallbacks)
+        {
+            if ((addr >= k[0]) && (addr <= k[1]))
+                v(addr);
+        }
+
+        return ret;
     }
 
     /**
@@ -161,12 +172,13 @@ public:
 
 private:
     /// The memory of the NES CPU
-    const size_t _memorySize = 0x10000;
+    immutable size_t _memorySize = 0x10000;
     ubyte[_memorySize] _memory;
 
     /// List of callbacks to execute when reading certain addresses. Addresses
     /// are given as an inclusive range of values in a tuple.
-    immutable nothrow @safe @nogc void delegate(ushort addr)[Tuple!(uint, uint)] _readCallbacks;
+    immutable nothrow @safe @nogc void delegate(ushort addr)[Tuple!(uint, uint)] _preReadCallbacks;
+    immutable nothrow @safe @nogc void delegate(ushort addr)[Tuple!(uint, uint)] _postReadCallbacks;
 
     /// List of callbacks to execute when writing to certain addresses.
     /// Addresses are given as an inclusive range of values in a tuple.
