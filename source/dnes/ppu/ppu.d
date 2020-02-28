@@ -31,13 +31,14 @@ public:
      */
     void tick()
     {
+        _fiber.call();
+
         if (++cycles > 340)
         {
             cycles = 0;
             if (++scanline > 261)
                 scanline = 0;
         }
-        _fiber.call();
     }
 
     /**
@@ -107,6 +108,15 @@ public:
     }
 
     /**
+     * Returns: The base address of the sprite pattern table being used.
+     *          Determined by bit 4 of PPUCTRL
+     */
+    nothrow @safe @nogc ushort spritePatternTableAddress() const
+    {
+        return (cpu.memory[ppuCtrl] & 0x08) > 0 ? 0x1000 : 0x0000;
+    }
+
+    /**
      * Returns: The PPU state as a string
      */
     override @safe string toString() const
@@ -131,6 +141,11 @@ public:
     ushort t; /// Temporary VRAM address
     ubyte  x; /// Fine X scroll
     bool   w; /// First or second write toggle
+
+    /// Background rendering registers
+    ushort[2] patternData; /// Contains the pattern table data for two tiles
+    ubyte[8] paletteData;  /// Contains the palette attributes for the lower
+                           /// 8 pixels of 16-bit shift register
 
 private:
     // PPU register constants
