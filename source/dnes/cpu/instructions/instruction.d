@@ -15,6 +15,8 @@ public:
      *
      * Params:
      *     n = The opcode of the instruction
+     *
+     * Throws: UnknownInstructionException if an unknown opcode is passed
      */
     pure @safe this(ubyte n)
     {

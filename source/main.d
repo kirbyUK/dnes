@@ -5,6 +5,7 @@ import std.typecons;
 import dnes.cpu;
 import dnes.ppu;
 import dnes.rom;
+import dnes.screen;
 
 /**
  * Print program usage
@@ -53,33 +54,43 @@ int main(string[] args)
     if (arg[0])
         return 1;
 
-    // initialise sdl2
-    // initialise screen
-
-    // Load the ROM from the given file
-    rom = new ROM(arg[1]);
-
-    // Run the emulation
     auto ret = 0;
-    cpu = new CPU(arg[2]);
-    ppu = new PPU();
     try
     {
-        while (true)
+        // Load the ROM from the given file
+        rom = new ROM(arg[1]);
+
+        // Initialise SDL and the window
+        screen = new Screen();
+
+        // Run the emulation
+        cpu = new CPU(arg[2]);
+        ppu = new PPU();
+        while (!screen.closed())
         {
             cpu.tick();
             ppu.tick();
             ppu.tick();
             ppu.tick();
         }
+
+        screen.close();
+    }
+    catch (SDLLoadException e)
+    {
+        writeln(e.msg);
+        ret = 1;
+    }
+    catch (SDLException e)
+    {
+        writeln(e.msg);
+        ret = 1;
     }
     catch (UnknownInstructionException e)
     {
         writeln(e.msg);
         ret = 1;
     }
-
-    // sdl cleanup
 
     return ret;
 }
