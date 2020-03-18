@@ -11,11 +11,11 @@ import dnes.util;
  * Executes the PPU rendering loop indefinitely, yielding whenever a clock
  * cycle elapses. This function performs the memory accesses and sets the
  * shift registers and latches needed for rendering - the pixel that is drawn
- * every cycle is done by drawPixels()
+ * every cycle is done by ppuDrawing()
  *
  * <https://wiki.nesdev.com/w/index.php/PPU_rendering>
  */
-void ppuRendering(PPU ppu)
+void ppuRendering()
 {
     // Used to control if we are rendering an odd or even frame, which controls
     // if the idle cycle at the beginning of the first scanline is skipped

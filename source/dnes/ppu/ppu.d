@@ -4,6 +4,7 @@ import core.thread;
 import std.format;
 
 import dnes.cpu;
+import dnes.ppu.drawing;
 import dnes.ppu.memory;
 import dnes.ppu.oam;
 import dnes.ppu.rendering;
@@ -22,7 +23,8 @@ public:
         memory = new Memory();
         cycles = 0;
         scanline = 0;
-        _fiber = new Fiber(() => ppuRendering(this));
+        _drawFiber = new Fiber(&ppuDrawing);
+        _renderFiber = new Fiber(&ppuRendering);
     }
 
     /**
@@ -31,7 +33,8 @@ public:
      */
     void tick()
     {
-        _fiber.call();
+        _drawFiber.call();
+        _renderFiber.call();
 
         if (++cycles > 340)
         {
@@ -167,7 +170,7 @@ public:
 
     /// Background rendering registers
     ushort[2] patternData; /// Contains the pattern table data for two tiles
-    ubyte[8] paletteData;  /// Contains the palette attributes for the lower
+    ubyte[2] paletteData;  /// Contains the palette attributes for the lower
                            /// 8 pixels of 16-bit shift register
 
 private:
@@ -181,7 +184,8 @@ private:
     const ushort ppuAddr   = 0x2006;
     const ushort ppuData   = 0x2007;
 
-    Fiber _fiber;
+    Fiber _drawFiber;
+    Fiber _renderFiber;
 }
 
 // Export a global variable
