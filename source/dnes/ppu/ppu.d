@@ -88,7 +88,7 @@ public:
             // t: ..FEDCBA ........ = d: ..FEDCBA
             // t: .X...... ........ = 0
             // w:                   = 1
-            t = (t & 0xbf00) | ((value & 0x3f) << 8);
+            t = (t & 0x80ff) | ((value & 0x3f) << 8);
             w = true;
         }
         else
