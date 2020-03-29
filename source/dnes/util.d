@@ -46,3 +46,21 @@ void callFiber(Fiber fiber)
             Fiber.yield();
     }
 }
+
+/**
+ * Flips a given byte. For example, 0b00010010 becomes 0b01001000
+ *
+ *
+ * Params:
+ *     b = The byte to flip
+ *
+ * Returns The passed byte flipped
+ */
+pure nothrow @safe @nogc ubyte flip(ubyte b)
+{
+    auto flipped = b;
+    flipped = (flipped & 0xf0) >> 4 | (flipped & 0x0f) << 4;
+    flipped = (flipped & 0xcc) >> 2 | (flipped & 0x33) << 2;
+    flipped = (flipped & 0xaa) >> 1 | (flipped & 0x55) << 1;
+    return flipped;
+}

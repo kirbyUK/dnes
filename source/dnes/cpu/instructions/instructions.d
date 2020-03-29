@@ -1,5 +1,6 @@
 module dnes.cpu.instructions.instructions;
 
+import core.memory;
 import core.thread;
 import std.stdio;
 
@@ -42,6 +43,8 @@ void executeInstructions(CPU cpu, bool logging)
             callFiber(new Fiber(&handleInterrupt));
             cpu.resetInterrupt();
         }
+
+        GC.collect();
     }
 }
 

@@ -41,7 +41,7 @@ public:
         _writeCallbacks = [
             // Writing to PPUCTRL also sets the namespace select in the PPU's
             // temporary VRAM address
-            tuple(0x2000u, 0x2000u): (ushort, ubyte value) { ppu.t = (ppu.t & 0xf3ff) | (value & 0x03); },
+            tuple(0x2000u, 0x2000u): (ushort, ubyte value) { ppu.t = (ppu.t & 0xf3ff) | ((value & 0x03) << 10); },
 
             // Writes to PPUSCROLL set the X then Y scroll positions
             tuple(0x2005u, 0x2005u): (ushort, ubyte value) { ppu.ppuScrollWrite(value); },

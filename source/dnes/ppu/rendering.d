@@ -103,6 +103,8 @@ void scanline(bool prerender)
         // At dot 257, the PPU copies all bits related to horizontal position from
         // t to v. The PPU then fetches tile data for the sprites on the next
         // scanline
+        //
+        // v: .....F.. ...EDCBA = t: .....F.. ...EDCBA
         assert(ppu.cycles == 257);
         ppu.v = (ppu.v & 0xfbe0) | (ppu.t & 0x041f);
         foreach (i; 0 .. 64)
@@ -149,7 +151,9 @@ void tileDataFetch()
 
     // Fetch the two pattern table bytes, using the value from the
     // nametable to select which pattern is selected
-    const auto patternTableAddr = wrap!ushort(ppu.spritePatternTableAddress() + (nametableByte * 16));
+    const auto patternTableAddr = wrap!ushort(
+        ppu.spritePatternTableAddress() + (nametableByte * 16) + (ppu.scanline % 8)
+    );
     const auto patternTableTileLo = ppu.memory.get(patternTableAddr);
     Fiber.yield();
     Fiber.yield();
@@ -159,8 +163,13 @@ void tileDataFetch()
     Fiber.yield();
 
     // Reload the shift registers
-    ppu.patternData[0] = ppu.patternData[1];
-    ppu.patternData[1] = concat(patternTableTileHi, patternTableTileLo);
+    //
+    // Pattern table bytes are read left-to-right, so pixel zero is the most
+    // significant bit. This is in contrast to how the program would normally
+    // read the value, where the least significant bit comes first. Therefore,
+    // we need to flip the nametable bytes.
+    ppu.patternData[0] = (ppu.patternData[0] & 0x00ff) | (flip(patternTableTileLo) << 8);
+    ppu.patternData[1] = (ppu.patternData[1] & 0x00ff) | (flip(patternTableTileHi) << 8);
     ppu.paletteData[0] = ppu.paletteData[1];
     ppu.paletteData[1] = attributeTableByte;
 
@@ -174,6 +183,7 @@ void tileDataFetch()
  *
  * <https://wiki.nesdev.com/w/index.php/PPU_scrolling#Y_increment>
  */
+/*
 void incrementFineYInVramAddr()
 {
     if ((ppu.v & 0x7000) != 0x7000)
@@ -192,5 +202,25 @@ void incrementFineYInVramAddr()
         else
             y += 1;
         ppu.v = wrap!ushort((ppu.v & ~0x03E0) | (y << 5));
+    }
+}
+*/
+
+/**
+ * Increment the fine y portion of the VRAM address, wrapping around to coarse
+ * y.
+ */
+void incrementFineYInVramAddr()
+{
+    const ubyte fineY = (ppu.v & 0xe000) >> 13;
+    ppu.v = (ppu.v & 0x1fff) | (((fineY + 1) % 8) << 13);
+
+    // The coarse y is naturally incremented during the rendering loop
+    // incorrectly, so reset it unless the fine y is going to wrap
+    if (fineY != 0)
+    {
+        ubyte coarseY = (ppu.v & 0x3e0) >> 5;
+        coarseY = wrap!ubyte(coarseY - 1);
+        ppu.v = (ppu.v & 0xfc1f) | (coarseY << 5);
     }
 }

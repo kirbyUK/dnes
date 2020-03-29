@@ -51,7 +51,7 @@ public:
 
         _texture = SDL_CreateTexture(
             _renderer,
-            SDL_PIXELFORMAT_ARGB8888,
+            SDL_PIXELFORMAT_BGRA8888,
             SDL_TEXTUREACCESS_STREAMING,
             width,
             height
