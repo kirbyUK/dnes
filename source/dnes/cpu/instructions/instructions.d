@@ -640,6 +640,8 @@ void handleInterrupt()
     {
         cpu.sp--;
         Fiber.yield();
+        cpu.sp--;
+        Fiber.yield();
     }
 
     // Next the CPU flags are pushed to the stack. The B flag is set to
@@ -659,14 +661,14 @@ void handleInterrupt()
 
     // The final two cycles fetch the new address from the interrupt
     // vector and set it to the PC
-    const ushort[CPU.Interrupt] interruptVectors = [
+    immutable ushort[CPU.Interrupt] interruptVectors = [
         CPU.Interrupt.NMI:   0xfffa,
         CPU.Interrupt.RESET: 0xfffc,
         CPU.Interrupt.IRQ:   0xfffe,
         CPU.Interrupt.BRK:   0xfffe,
     ];
     const auto interruptVector = interruptVectors[cpu.interrupt];
-    cpu.pc = 0x0000 | cpu.memory.get(interruptVector);
+    cpu.pc = cpu.memory.get(interruptVector);
     cpu.setFlag(CPU.Flag.I, true);
     Fiber.yield();
     cpu.pc |= cpu.memory.get(wrap!ushort((interruptVector + 1))) << 8;
