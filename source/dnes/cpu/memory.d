@@ -108,7 +108,7 @@ public:
      */
     @nogc void push(ubyte value)
     {
-        set(0x1000 + cpu.sp, value);
+        set(0x0100 + cpu.sp, value);
         cpu.sp--;
     }
 
@@ -118,7 +118,7 @@ public:
     @safe @nogc ubyte pop()
     {
         cpu.sp++;
-        return get(0x1000 + cpu.sp);
+        return get(0x0100 + cpu.sp);
     }
 
     /**
