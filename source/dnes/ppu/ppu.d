@@ -17,12 +17,17 @@ class PPU
 public:
     /**
      * Constructor
+     *
+     * Params:
+     *     rendering = True to enable rendering to the screen, false to avoid
+     *                 making any writes to the global 'screen' object.
      */
-    nothrow this()
+    nothrow this(bool rendering)
     {
         memory = new Memory();
         cycles = 0;
         scanline = 0;
+        _rendering = rendering;
         _drawFiber = new Fiber(&ppuDrawing);
         _renderFiber = new Fiber(&ppuRendering);
     }
@@ -33,8 +38,9 @@ public:
      */
     void tick()
     {
-        _drawFiber.call();
         _renderFiber.call();
+        if (_rendering)
+            _drawFiber.call();
 
         if (++cycles > 340)
         {
@@ -111,11 +117,33 @@ public:
     }
 
     /**
+     * Returns: The base nametable address
+     */
+    nothrow @safe @nogc ushort baseNametableAddress() const
+    {
+        final switch (cpu.memory[ppuCtrl] & 0x03)
+        {
+            case 0: return 0x2000;
+            case 1: return 0x2400;
+            case 2: return 0x2800;
+            case 3: return 0x2c00;
+        }
+    }
+
+    /**
      * Returns: The base address of the sprite pattern table being used
      */
     nothrow @safe @nogc ushort spritePatternTableAddress() const
     {
         return (cpu.memory[ppuCtrl] & 0x08) > 0 ? 0x1000 : 0x0000;
+    }
+
+    /**
+     * Returns: The base address of the background pattern table being used
+     */
+    nothrow @safe @nogc ushort backgroundPatternTableAddress() const
+    {
+        return (cpu.memory[ppuCtrl] & 0x10) > 0 ? 0x1000 : 0x0000;
     }
 
     /**
@@ -184,6 +212,7 @@ private:
     const ushort ppuAddr   = 0x2006;
     const ushort ppuData   = 0x2007;
 
+    bool _rendering;
     Fiber _drawFiber;
     Fiber _renderFiber;
 }

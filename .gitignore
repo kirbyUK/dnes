@@ -33,3 +33,15 @@ bin/
 .dub
 dub.selections.json
 dub_*
+
+# ROMs
+roms/
+!roms/instr_test-v5/
+
+# Editor files
+.vscode/
+
+# Executables
+dnes
+dnes-test
+!dnes/

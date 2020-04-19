@@ -65,7 +65,7 @@ int main(string[] args)
 
         // Run the emulation
         cpu = new CPU(arg[2]);
-        ppu = new PPU();
+        ppu = new PPU(true);
         while (!screen.closed())
         {
             cpu.tick();

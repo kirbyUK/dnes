@@ -64,6 +64,12 @@ public:
      */
     override nothrow @safe @nogc void cpuWrite(ushort addr, ubyte value)
     {
+        if ((addr >= chrBankOffset) && (addr < prgBank1Offset))
+            _chrBank[addr - chrBankOffset] = value;
+        else if ((addr >= prgBank1Offset) && (addr < prgBank2Offset))
+            _prgBank1[addr - prgBank1Offset] = value;
+        else if (addr >= prgBank2Offset)
+            _prgBank2[addr - prgBank2Offset] = value;
     }
 
     /**

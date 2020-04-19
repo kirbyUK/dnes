@@ -10,5 +10,20 @@
     "dependencies": {
         "bindbc-sdl": "~>0.1.0"
     },
-    "versions": ["SDL_2010"]
+    "versions": ["SDL_2010"],
+    "configurations": [
+        {
+            "name": "application",
+            "targetType": "executable",
+            "mainSourceFile": "source/app.d",
+            "excludedSourceFiles": ["source/dnes/test/*"]
+        },
+        {
+            "name": "unittest",
+            "targetType": "executable",
+            "targetName": "dnes-test",
+            "mainSourceFile": "source/dnes/test/tests.d",
+            "excludedSourceFiles": ["source/app.d"]
+        }
+    ]
 }
