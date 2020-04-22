@@ -26,7 +26,7 @@ pure nothrow @safe @nogc ushort concat(ubyte hi, ubyte lo)
  */
 pure nothrow @safe @nogc T wrap(T)(uint x)
 {
-    return x % T.max;
+    return x % (T.max + 1);
 }
 
 /**

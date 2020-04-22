@@ -44,6 +44,7 @@ void executeInstructions(CPU cpu, bool logging)
             cpu.resetInterrupt();
         }
 
+        cpu.emit(cpu.pc);
         GC.collect();
     }
 }
@@ -146,13 +147,13 @@ ushort calculateAddress(const Instruction instruction)
         case Addressing.INY:
             return (wrap!ushort(concat(hi, lo) + cpu.y));
         case Addressing.ZRX:
-            const auto addrLo = cpu.memory.get(concat(0, lo));
+            const auto addr = concat(0, wrap!ubyte(lo + cpu.x));
             Fiber.yield();
-            return wrap!ushort(addrLo + cpu.x);
+            return addr;
         case Addressing.ZRY:
-            const auto addrLo = cpu.memory.get(concat(0, lo));
+            const auto addr = concat(0, wrap!ubyte(lo + cpu.y));
             Fiber.yield();
-            return wrap!ushort(addrLo + cpu.y);
+            return addr;
         case Addressing.IND:
             // In indirect addressing, the address to use is stored in $HHLL.
             // However, there is a bug where indirect addressing does not
@@ -167,16 +168,14 @@ ushort calculateAddress(const Instruction instruction)
             auto addrLo = cpu.memory.get(concat(0, lo));
             Fiber.yield();
             const auto addrHi = cpu.memory.get(wrap!ubyte(lo + 1));
-            addrLo += cpu.y;
             Fiber.yield();
-            return concat(addrHi, addrLo);
+            return wrap!ushort(concat(addrHi, addrLo) + cpu.y);
         case Addressing.IDX:
-            auto pointer = cpu.memory.get(concat(0, lo));
-            pointer += cpu.x;
+            auto pointer = wrap!ubyte(lo + cpu.x);
             Fiber.yield();
-            const auto addrLo = cpu.memory.get(pointer);
+            const auto addrLo = cpu.memory.get(concat(0, pointer));
             Fiber.yield();
-            const auto addrHi = cpu.memory.get(wrap!ushort(pointer + 1));
+            const auto addrHi = cpu.memory.get(concat(0, wrap!ubyte(pointer + 1)));
             Fiber.yield();
             return concat(addrHi, addrLo);
         case Addressing.REL:
@@ -223,6 +222,8 @@ ubyte addressValue(const Instruction instruction, ushort address)
     }
     else if (instruction.addressing == Addressing.IMM)
         value = address & 0x00ff;
+    else if (instruction.addressing == Addressing.IMP)
+        value = cpu.acc;
 
     // Check for page boundary crossings, and add an extra cycle if so:
     if ((instruction.addressing == Addressing.INX) ||
@@ -264,10 +265,10 @@ ubyte addressValue(const Instruction instruction, ushort address)
  */
 void executeInstruction(const Instruction instruction, ushort address, ubyte value)
 {
-    const auto accumulatorPrevious = cpu.acc;
     switch (instruction.opcode)
     {
         case Opcode.ADC:  // Add with carry
+            const auto accumulatorPrevious = cpu.acc;
             const ushort sum = cpu.acc + value + (cpu.getFlag(CPU.Flag.C) ? 1 : 0);
             cpu.acc = sum & 0x00ff;
             cpu.setFlag(CPU.Flag.C, sum > 0xff);
@@ -305,7 +306,7 @@ void executeInstruction(const Instruction instruction, ushort address, ubyte val
 
         case Opcode.BIT:  // Bit Test
             const ubyte test = cpu.acc & value;
-            cpu.setFlag(CPU.Flag.Z, cpu.acc == 0);
+            cpu.setFlag(CPU.Flag.Z, test == 0);
             cpu.setFlag(CPU.Flag.V, (value & 0x40) > 0);
             cpu.setFlag(CPU.Flag.N, (value & 0x80) > 0);
             break;
@@ -489,16 +490,15 @@ void executeInstruction(const Instruction instruction, ushort address, ubyte val
             break;
 
         case Opcode.PLP:  // Pull Processor Status
-            cpu.status = cpu.memory.pop();
+            cpu.status = (cpu.memory.pop() & 0xef) | 0x20;
             Fiber.yield();
             Fiber.yield();
-            cpu.setFlag(CPU.Flag.B, false);
             break;
 
         case Opcode.ROL:  // Rotate Left
             const auto oldHighBit = (value & 0x80) >> 7;
-            const auto rotated = ((value << 1) | cpu.getFlag(CPU.Flag.C) ? 1 : 0);
-            writeInstruction(instruction, address, value);
+            const auto rotated = wrap!ubyte(value << 1) | (cpu.getFlag(CPU.Flag.C) ? 1 : 0);
+            writeInstruction(instruction, address, rotated);
             cpu.setFlag(CPU.Flag.C, oldHighBit > 0);
             cpu.setFlag(CPU.Flag.Z, rotated == 0);
             cpu.setFlag(CPU.Flag.N, (rotated & 0x80) > 0);
@@ -506,15 +506,15 @@ void executeInstruction(const Instruction instruction, ushort address, ubyte val
 
         case Opcode.ROR:  // Rotate Right
             const auto oldLowBit = value & 0x01;
-            const auto rotated = ((value >> 1) | cpu.getFlag(CPU.Flag.C) ? 0x80 : 0);
-            writeInstruction(instruction, address, value);
+            const auto rotated = (value >> 1) | (cpu.getFlag(CPU.Flag.C) ? 0x80 : 0);
+            writeInstruction(instruction, address, rotated);
             cpu.setFlag(CPU.Flag.C, oldLowBit > 0);
             cpu.setFlag(CPU.Flag.Z, rotated == 0);
             cpu.setFlag(CPU.Flag.N, (rotated & 0x80) > 0);
             break;
 
         case Opcode.RTI:  // Return from Interrupt
-            cpu.status = cpu.memory.pop();
+            cpu.status = (cpu.memory.pop() & 0xef) | 0x20;
             Fiber.yield();
             const auto pcLo = cpu.memory.pop();
             Fiber.yield();
@@ -535,11 +535,12 @@ void executeInstruction(const Instruction instruction, ushort address, ubyte val
             break;
 
         case Opcode.SBC:  // Subtract with Carry
-            const ushort sum = cpu.acc + ~value + (cpu.getFlag(CPU.Flag.C) ? 1 : 0);
+            const auto accumulatorPrevious = cpu.acc;
+            const ushort sum = cpu.acc + (value ^ 0xff) + (cpu.getFlag(CPU.Flag.C) ? 1 : 0);
             cpu.acc = sum & 0x00ff;
             cpu.setFlag(CPU.Flag.C, sum > 0xff);
             cpu.setFlag(CPU.Flag.Z, cpu.acc == 0);
-            cpu.setFlag(CPU.Flag.V, ((~(accumulatorPrevious ^ value)) & (accumulatorPrevious ^ cpu.acc) & 0x80) > 0);
+            cpu.setFlag(CPU.Flag.V, ((~(accumulatorPrevious ^ (value ^ 0xff))) & (accumulatorPrevious ^ cpu.acc) & 0x80) > 0);
             cpu.setFlag(CPU.Flag.N, (cpu.acc & 0x80) > 0);
             break;
 
@@ -650,7 +651,9 @@ void handleInterrupt()
     cpu.setFlag(CPU.Flag.B, isBRK);
     if (cpu.interrupt != CPU.Interrupt.RESET)
     {
-        cpu.memory.push(cpu.sp);
+        if (!isBRK)
+            cpu.setFlag(CPU.Flag.B, false);
+        cpu.memory.push(cpu.sp | isBRK ? 0x30 : 0x20);
         Fiber.yield();
     }
     else

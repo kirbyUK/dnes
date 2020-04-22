@@ -2,6 +2,7 @@ module dnes.cpu.cpu;
 
 import core.thread;
 import std.format;
+import std.signals;
 
 import dnes.cpu.dma;
 import dnes.cpu.instructions;
@@ -30,7 +31,7 @@ public:
         acc = 0;
         x = 0;
         y = 0;
-        status = 0x24;
+        status = 0x34;
 
         _instructionsFiber = new Fiber(() => executeInstructions(this, logging));
         _dmaFiber = new Fiber(() => oamdma(this));
@@ -169,6 +170,10 @@ public:
         NMI   = 3,
         RESET = 4,
     }
+
+    /// Signal to mark the end of an instruction, used to notify listeners in
+    /// unit tests
+    mixin Signal!(ushort);
 
 private:
     Fiber _instructionsFiber;
