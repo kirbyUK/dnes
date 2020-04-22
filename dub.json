@@ -22,7 +22,7 @@
             "name": "unittest",
             "targetType": "executable",
             "targetName": "dnes-test",
-            "mainSourceFile": "source/dnes/test/tests.d",
+            "mainSourceFile": "source/dnes/test/app.d",
             "excludedSourceFiles": ["source/app.d"]
         }
     ]

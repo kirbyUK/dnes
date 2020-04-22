@@ -37,6 +37,7 @@ dub_*
 # ROMs
 roms/
 !roms/instr_test-v5/
+!roms/nestest/
 
 # Editor files
 .vscode/
