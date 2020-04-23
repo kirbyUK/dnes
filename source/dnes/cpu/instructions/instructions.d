@@ -204,8 +204,7 @@ ubyte addressValue(const Instruction instruction, ushort address)
     // instruction (and therefore already fetched) Likewise, instructions
     // with implied addressing do not need to access any further memory.
     ubyte value = 0;
-    if ((instruction.addressing != Addressing.ABS) &&
-        (instruction.addressing != Addressing.IMM) &&
+    if ((instruction.addressing != Addressing.IMM) &&
         (instruction.addressing != Addressing.IMP) &&
         (instruction.addressing != Addressing.REL))
     {
