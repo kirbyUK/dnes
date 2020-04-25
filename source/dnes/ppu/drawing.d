@@ -14,9 +14,9 @@ void ppuDrawing()
 {
     while (true)
     {
-        if ((ppu.scanline >= 0) && (ppu.scanline <= 239) && (ppu.cycles >= 4) && (ppu.cycles <= 259))
+        if ((ppu.scanline >= 0) && (ppu.scanline <= 239) && (ppu.cycles >= 2) && (ppu.cycles <= 257))
         {
-            const auto x = ppu.cycles - 4;
+            const auto x = ppu.cycles - 2;
             const auto y = ppu.scanline;
             if (ppu.renderBackground())
             {
@@ -42,7 +42,7 @@ void ppuDrawing()
                 {
                     // If the BG pixel and the sprite pixel are 0, use the
                     // background colour
-                    screen.draw(ppu.memory[0x3F00], x, y);
+                    screen.draw(ppu.memory[0x3f00], x, y);
                 }
                 else if (sprite == 0)
                 {
@@ -64,7 +64,11 @@ void ppuDrawing()
             }
             else
                 screen.draw(0x3f, x, y);
+        }
 
+        if ((isFetchScanline()) &&
+            (((ppu.cycles >= 2) && (ppu.cycles <= 257)) || ((ppu.cycles >= 322) && (ppu.cycles <= 337))))
+        {
             // Shift the registers for the next value
             ppu.patternData[0] >>= 1;
             ppu.patternData[1] >>= 1;
@@ -74,6 +78,15 @@ void ppuDrawing()
 
         Fiber.yield();
     }
+}
+
+/**
+ * Returns: True if the PPU is on a scanline that performs tile fetches,
+ *          false if not
+ */
+nothrow @safe @nogc bool isFetchScanline()
+{
+    return ((ppu.scanline >= 0) && ((ppu.scanline <= 239) || (ppu.scanline == 261)));
 }
 
 /// Background palette base addresses

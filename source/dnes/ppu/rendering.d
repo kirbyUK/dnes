@@ -108,7 +108,16 @@ void scanline(bool prerender)
         assert(ppu.cycles == 257);
         ppu.v = (ppu.v & 0xfbe0) | (ppu.t & 0x041f);
         foreach (i; 0 .. 64)
+        {
+            // In addition to fetching the sprite data, if this is the
+            // prerender scanline, the PPU repeatedly copies the vertical bits
+            // from t to v during cycles 280 to 304
+            //
+            // v: .IHGF.ED CBA..... = t: .IHGF.ED CBA.....
+            if ((prerender) && ((ppu.cycles >= 280) && (ppu.cycles <= 304)))
+                ppu.v = (ppu.v & 0x841f) | (ppu.t & 0x7be0);
             Fiber.yield();
+        }
 
         // Increment vertical v - this is meant to happen at cycle 256
         incrementFineYInVramAddr();
@@ -138,13 +147,14 @@ void scanline(bool prerender)
 void tileDataFetch()
 {
     // Fetch the nametable byte
-    const auto tileAddress = 0x2000 | (ppu.v & 0x0fff);
+    const auto tileAddress = ppu.baseNametableAddress() | (ppu.v & 0x0fff);
     const auto nametableByte = ppu.memory.get(tileAddress);
     Fiber.yield();
     Fiber.yield();
 
     // Fetch the attribute table byte
-    const auto attributeAddr = 0x23c0 | (ppu.v & 0x0c00) | ((ppu.v >> 4) & 0x38) | ((ppu.v >> 2) & 0x07);
+    const auto attributeAddr = wrap!ushort(ppu.baseNametableAddress() + 0x03c0) |
+        (ppu.v & 0x0c00) | ((ppu.v >> 4) & 0x38) | ((ppu.v >> 2) & 0x07);
     const auto attributeTableByte = ppu.memory.get(attributeAddr);
     Fiber.yield();
     Fiber.yield();
@@ -152,7 +162,7 @@ void tileDataFetch()
     // Fetch the two pattern table bytes, using the value from the
     // nametable to select which pattern is selected
     const auto patternTableAddr = wrap!ushort(
-        ppu.spritePatternTableAddress() + (nametableByte * 16) + (ppu.scanline % 8)
+        ppu.backgroundPatternTableAddress() + (nametableByte * 16) + (ppu.scanline % 8)
     );
     const auto patternTableTileLo = ppu.memory.get(patternTableAddr);
     Fiber.yield();
