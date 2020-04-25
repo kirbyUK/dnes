@@ -170,6 +170,9 @@ void tileDataFetch()
 
     const auto patternTableTileHi = ppu.memory.get(wrap!ushort(patternTableAddr + 8));
     Fiber.yield();
+
+    // Increment horizontal v
+    ppu.v += ppu.vramAddressIncrement();
     Fiber.yield();
 
     // Reload the shift registers
@@ -182,9 +185,6 @@ void tileDataFetch()
     ppu.patternData[1] = (ppu.patternData[1] & 0x00ff) | (flip(patternTableTileHi) << 8);
     ppu.paletteData[0] = ppu.paletteData[1];
     ppu.paletteData[1] = attributeTableByte;
-
-    // Increment horizontal v
-    ppu.v += ppu.vramAddressIncrement();
 }
 
 /**
