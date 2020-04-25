@@ -28,12 +28,19 @@ public:
      */
     void run()
     {
-        while (!exit())
+        try
         {
-            cpu.tick();
-            ppu.tick();
-            ppu.tick();
-            ppu.tick();
+            while (!exit())
+            {
+                cpu.tick();
+                ppu.tick();
+                ppu.tick();
+                ppu.tick();
+            }
+        }
+        catch (UnknownInstructionException)
+        {
+            cpu.memory.set(0x6000, 0x00);
         }
 
         int i = 0;
