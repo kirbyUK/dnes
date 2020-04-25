@@ -27,13 +27,13 @@ void ppuDrawing()
                 const ubyte tileLoBit = (tileLoByte >> ppu.x) & 0x01;
                 const ubyte tileHiBit = (tileHiByte >> ppu.x) & 0x01;
                 const ubyte tile = (tileHiBit << 1) | tileLoBit;
-                assert(tile <= 4);
+                assert(tile < 4);
 
                 // Get the low and high bits of the palette attribute for the tile
                 const ubyte attrLoBit = (ppu.paletteData[0] >> ppu.x) & 0x01;
                 const ubyte attrHiBit = (ppu.paletteData[1] >> ppu.x) & 0x01;
                 const ubyte attr = (attrHiBit << 1) | attrLoBit;
-                assert(attr <= 4);
+                assert(attr < 4);
 
                 // sprite data
                 immutable ubyte sprite = 0;
@@ -49,7 +49,7 @@ void ppuDrawing()
                     // If the sprite pixel is zero, draw the background tile.
                     // The attribute data selects the palette, and the tile
                     // value selects the colour in the palette
-                    const auto paletteAddr = backgroundPaletteBase[attr] + tile;
+                    const auto paletteAddr = backgroundPaletteBase[attr] + (tile - 1);
                     screen.draw(ppu.memory[paletteAddr], x, y);
                 }
                 else if (tile == 0)
