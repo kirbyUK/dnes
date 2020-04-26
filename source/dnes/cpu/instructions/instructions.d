@@ -44,7 +44,7 @@ void executeInstructions(CPU cpu, bool logging)
             cpu.resetInterrupt();
         }
 
-        cpu.emit(cpu.pc);
+        cpu.emit(CPU.Event.INSTRUCTION);
         GC.collect();
     }
 }

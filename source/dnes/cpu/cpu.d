@@ -171,9 +171,15 @@ public:
         RESET = 4,
     }
 
+    /// Enumeration of event signals
+    enum Event
+    {
+        INSTRUCTION,
+    }
+
     /// Signal to mark the end of an instruction, used to notify listeners in
     /// unit tests
-    mixin Signal!(ushort);
+    mixin Signal!(Event);
 
 private:
     Fiber _instructionsFiber;

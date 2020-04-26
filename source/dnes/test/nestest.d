@@ -142,9 +142,10 @@ private:
     /**
      * Signal listener to determine when the CPU finishes an instruction
      */
-    void cpuFinishesInstructionWatcher(ushort pc)
+    void cpuFinishesInstructionWatcher(CPU.Event event)
     {
-        _executedInstruction = true;
+        if (event == CPU.Event.INSTRUCTION)
+            _executedInstruction = true;
     }
 
     /**
