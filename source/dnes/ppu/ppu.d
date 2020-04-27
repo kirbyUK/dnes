@@ -8,6 +8,7 @@ import dnes.ppu.drawing;
 import dnes.ppu.memory;
 import dnes.ppu.oam;
 import dnes.ppu.rendering;
+import dnes.ppu.sprite_evaluation;
 
 /**
  * The NES PPU - controls picture rendering
@@ -27,9 +28,11 @@ public:
         memory = new Memory();
         cycles = 0;
         scanline = 0;
+        secondaryOAM = 0xff;
         _rendering = rendering;
         _drawFiber = new Fiber(&ppuDrawing);
         _renderFiber = new Fiber(&ppuRendering);
+        _spriteEvaluationFiber = new Fiber(&spriteEvaluation);
     }
 
     /**
@@ -39,6 +42,7 @@ public:
     void tick()
     {
         _renderFiber.call();
+        _spriteEvaluationFiber.call();
         if (_rendering)
             _drawFiber.call();
 
@@ -181,9 +185,6 @@ public:
     /// The PPU memory
     Memory memory;
 
-    /// The PPU OAM memory
-    OAM oam;
-
     /// The number of clock cycles executed in this scanline. Resets after 340
     uint cycles;
 
@@ -201,6 +202,15 @@ public:
     ubyte[2] paletteData;  /// Contains the palette attributes for the lower
                            /// 8 pixels of 16-bit shift register
 
+    /// The PPU OAM memory
+    ubyte[256] oam;         /// Primary OAM, 64 sprites
+    ubyte[32] secondaryOAM; /// Secondary OAM, 8 sprites
+
+    /// Sprite rendering registers
+    ubyte[2][8] spritePatternData; /// High and low pattern bytes for 8 sprites
+    ubyte[8] spriteAttribute;      /// Attribute bytes for 8 sprites
+    ubyte[8] spriteXPosition;      /// X position bytes for 8 sprites
+
 private:
     // PPU register constants
     const ushort ppuCtrl   = 0x2000;
@@ -215,6 +225,7 @@ private:
     bool _rendering;
     Fiber _drawFiber;
     Fiber _renderFiber;
+    Fiber _spriteEvaluationFiber;
 }
 
 // Export a global variable

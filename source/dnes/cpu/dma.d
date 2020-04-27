@@ -23,7 +23,7 @@ void oamdma(CPU cpu)
     {
         const auto data = cpu.memory[addr | i];
         Fiber.yield();
-        ppu.oam.raw[i] = data;
+        ppu.oam[i] = data;
         Fiber.yield();
     }
 

@@ -45,7 +45,7 @@ void ppuRendering()
         // Idle scanline
         else if (ppu.scanline == 240)
         {
-            foreach (i; 0 .. 341)
+            foreach (_; 0 .. 341)
                 Fiber.yield();
         }
         // Vertical blanking lines
@@ -64,7 +64,7 @@ void ppuRendering()
                 }
             }
             Fiber.yield();
-            foreach (i; 0 .. 339)
+            foreach (_; 0 .. 339)
                 Fiber.yield();
         }
         // Prerender scanline
@@ -97,7 +97,7 @@ void scanline(bool prerender)
         // Fetches data for each tile on this scanline, except for the first two,
         // which were fetched on the previous scanline
         assert(ppu.cycles == 1);
-        foreach (i; 0 .. 32)
+        foreach (_; 0 .. 32)
             callFiber(new Fiber(&tileDataFetch));
 
         // At dot 257, the PPU copies all bits related to horizontal position from
@@ -107,16 +107,24 @@ void scanline(bool prerender)
         // v: .....F.. ...EDCBA = t: .....F.. ...EDCBA
         assert(ppu.cycles == 257);
         ppu.v = (ppu.v & 0xfbe0) | (ppu.t & 0x041f);
-        foreach (i; 0 .. 64)
+        if (!prerender)
         {
-            // In addition to fetching the sprite data, if this is the
-            // prerender scanline, the PPU repeatedly copies the vertical bits
-            // from t to v during cycles 280 to 304
-            //
-            // v: .IHGF.ED CBA..... = t: .IHGF.ED CBA.....
-            if ((prerender) && ((ppu.cycles >= 280) && (ppu.cycles <= 304)))
-                ppu.v = (ppu.v & 0x841f) | (ppu.t & 0x7be0);
-            Fiber.yield();
+            foreach (i; 0 .. 8)
+                callFiber(new Fiber(() => spriteDataFetch(i)));
+        }
+        else
+        {
+            foreach (_; 0 .. 64)
+            {
+                // In addition to fetching the sprite data, if this is the
+                // prerender scanline, the PPU repeatedly copies the vertical bits
+                // from t to v during cycles 280 to 304
+                //
+                // v: .IHGF.ED CBA..... = t: .IHGF.ED CBA.....
+                if ((ppu.cycles >= 280) && (ppu.cycles <= 304))
+                    ppu.v = (ppu.v & 0x841f) | (ppu.t & 0x7be0);
+                Fiber.yield();
+            }
         }
 
         // Increment vertical v - this is meant to happen at cycle 256
@@ -124,17 +132,17 @@ void scanline(bool prerender)
 
         // Fetches the first two tiles of the next scanline
         assert(ppu.cycles == 321);
-        foreach (i; 0 .. 2)
+        foreach (_; 0 .. 2)
             callFiber(new Fiber(&tileDataFetch));
 
         // Two dummy nametable byte fetches are done here
         assert(ppu.cycles == 337);
-        foreach (i; 0 .. 4)
+        foreach (_; 0 .. 4)
             Fiber.yield();
     }
     else
         // If rendering is disabled, then there is nothing to do
-        foreach (i; 0 .. 340)
+        foreach (_; 0 .. 340)
             Fiber.yield();
 }
 
@@ -206,6 +214,47 @@ void tileDataFetch()
             ppu.paletteData[1] = 0xff;
             break;
     }
+}
+
+/**
+ * Perform a single fetch for the sprite tiles, which occurs 8 times between
+ * cycles 257 and 320 inclusive on visible scanlines. One execution takes 8
+ * cycles.
+ *
+ * Params:
+ *     spriteNumber = The sprite number to fetch from secondary OAM
+ */
+void spriteDataFetch(int spriteNumber)
+in (spriteNumber >= 0 && spriteNumber <= 8)
+{
+    // Garbage nametable fetch
+    Fiber.yield();
+    Fiber.yield();
+
+    // Second garbage nametable fetch - this one gets the sprite X on the first
+    // tick, and the sprite attribute on the second, and loads them into the
+    // appropriate latches
+    ppu.spriteAttribute[spriteNumber] = ppu.secondaryOAM[(spriteNumber * 4) + 2];
+    Fiber.yield();
+    ppu.spriteXPosition[spriteNumber] = ppu.secondaryOAM[(spriteNumber * 4) + 3];
+    Fiber.yield();
+
+    // Fetch the two pattern table bytes
+    const auto patternIndex = ppu.secondaryOAM[(spriteNumber * 4) + 1];
+    const auto patternTableAddr = wrap!ushort(
+        ppu.spritePatternTableAddress() + (patternIndex * 16) + (ppu.scanline % 8)
+    );
+    const auto patternTableLo = patternIndex < 0xff ? ppu.memory.get(patternTableAddr) : 0xff;
+    Fiber.yield();
+    Fiber.yield();
+
+    const auto patternTableHi = patternIndex < 0xff ? ppu.memory.get(wrap!ushort(patternTableAddr + 8)) : 0xff;
+    Fiber.yield();
+    Fiber.yield();
+
+    // Reload the shift registers with the pattern data
+    ppu.spritePatternData[spriteNumber][0] = patternTableLo;
+    ppu.spritePatternData[spriteNumber][1] = patternTableHi;
 }
 
 /**
