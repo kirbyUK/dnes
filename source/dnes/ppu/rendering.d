@@ -234,15 +234,22 @@ in (spriteNumber >= 0 && spriteNumber <= 8)
     // Second garbage nametable fetch - this one gets the sprite X on the first
     // tick, and the sprite attribute on the second, and loads them into the
     // appropriate latches
-    ppu.spriteAttribute[spriteNumber] = ppu.secondaryOAM[(spriteNumber * 4) + 2];
+    const auto spriteAttributes = ppu.secondaryOAM[(spriteNumber * 4) + 2];
+    ppu.spriteAttribute[spriteNumber] = spriteAttributes;
     Fiber.yield();
     ppu.spriteXPosition[spriteNumber] = ppu.secondaryOAM[(spriteNumber * 4) + 3];
     Fiber.yield();
 
-    // Fetch the two pattern table bytes
+    // Fetch the two pattern table bytes - the order these come from is
+    // influenced by if the 'flip sprite vertically' flag is set. If so, we get
+    // bytes from the pattern table bottom-to-top
+    const auto spriteY = ppu.secondaryOAM[spriteNumber * 4];
+    const auto patternTableAddrOffset = (spriteAttributes & 0x80) == 0 ?
+        ppu.scanline - spriteY :
+        7 - (ppu.scanline - spriteY);
     const auto patternIndex = ppu.secondaryOAM[(spriteNumber * 4) + 1];
     const auto patternTableAddr = wrap!ushort(
-        ppu.spritePatternTableAddress() + (patternIndex * 16) + (ppu.scanline % 8)
+        ppu.spritePatternTableAddress() + (patternIndex * 16) + patternTableAddrOffset
     );
     const auto patternTableLo = patternIndex < 0xff ? ppu.memory.get(patternTableAddr) : 0xff;
     Fiber.yield();
@@ -252,9 +259,10 @@ in (spriteNumber >= 0 && spriteNumber <= 8)
     Fiber.yield();
     Fiber.yield();
 
-    // Reload the shift registers with the pattern data
-    ppu.spritePatternData[spriteNumber][0] = patternTableLo;
-    ppu.spritePatternData[spriteNumber][1] = patternTableHi;
+    // Reload the shift registers with the pattern data. Which order the bits
+    // go in is determined by if the flip horizontally attribute is set
+    ppu.spritePatternData[spriteNumber][0] = (spriteAttributes & 0x40) > 0 ? patternTableLo : flip(patternTableLo);
+    ppu.spritePatternData[spriteNumber][1] = (spriteAttributes & 0x40) > 0 ? patternTableHi : flip(patternTableHi);
 }
 
 /**

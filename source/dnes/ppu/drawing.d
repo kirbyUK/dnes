@@ -28,7 +28,6 @@ void ppuDrawing()
                 const auto selectedSprite = currentSprite(x);
                 const auto sprite = !selectedSprite.isNull ?
                     spriteTile(selectedSprite.get, x) : 0;
-                assert(sprite == 0);
 
                 // Determine which to render based on the values
                 if ((tile == 0) && (sprite == 0))
@@ -80,11 +79,6 @@ void ppuDrawing()
             ppu.patternData[1] >>= 1;
             ppu.paletteData[0] >>= 1;
             ppu.paletteData[1] >>= 1;
-            foreach (spritePattern; ppu.spritePatternData)
-            {
-                spritePattern[0] >>= 1;
-                spritePattern[1] >>= 1;
-            }
         }
 
         Fiber.yield();
@@ -133,7 +127,7 @@ out (r; r.isNull || (r.get >= 0 && r.get <= 7))
     foreach (i; 0 .. 8)
     {
         const auto spriteX = ppu.spriteXPosition[i];
-        if ((spriteX != 0xff) && (spriteX >= renderXPos) && (spriteX < (renderXPos + 8)))
+        if ((spriteX != 0xff) && (renderXPos >= spriteX) && (renderXPos < (spriteX + 8)))
             return i.nullable;
     }
 
@@ -169,7 +163,7 @@ nothrow @safe @nogc ubyte spritePalette(int selectedSprite)
 in (selectedSprite >= 0 && selectedSprite <= 7)
 out (r; r >= 0 && r <= 3)
 {
-    return ppu.spriteAttribute[selectedSprite] && 0x03;
+    return ppu.spriteAttribute[selectedSprite] & 0x03;
 }
 
 /**
