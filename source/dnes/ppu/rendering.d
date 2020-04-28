@@ -40,7 +40,7 @@ void ppuRendering()
             oddFrame = !oddFrame;
 
             // Fills the pipeline for rendering
-            callFiber(new Fiber(() => scanline(false)));
+            scanline(false);
         }
         // Idle scanline
         else if (ppu.scanline == 240)
@@ -75,7 +75,7 @@ void ppuRendering()
 
             // The prerender scanline makes all the same memory accesses as the
             // visible scanlines, in order to fill the pipeline for rendering
-            callFiber(new Fiber(() => scanline(true)));
+            scanline(true);
         }
     }
 }
@@ -98,7 +98,7 @@ void scanline(bool prerender)
         // which were fetched on the previous scanline
         assert(ppu.cycles == 1);
         foreach (_; 0 .. 32)
-            callFiber(new Fiber(&tileDataFetch));
+            tileDataFetch();
 
         // At dot 257, the PPU copies all bits related to horizontal position from
         // t to v. The PPU then fetches tile data for the sprites on the next
@@ -110,7 +110,7 @@ void scanline(bool prerender)
         if (!prerender)
         {
             foreach (i; 0 .. 8)
-                callFiber(new Fiber(() => spriteDataFetch(i)));
+                spriteDataFetch(i);
         }
         else
         {
@@ -133,7 +133,7 @@ void scanline(bool prerender)
         // Fetches the first two tiles of the next scanline
         assert(ppu.cycles == 321);
         foreach (_; 0 .. 2)
-            callFiber(new Fiber(&tileDataFetch));
+            tileDataFetch();
 
         // Two dummy nametable byte fetches are done here
         assert(ppu.cycles == 337);

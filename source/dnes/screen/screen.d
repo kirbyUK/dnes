@@ -21,6 +21,7 @@ public:
      */
     this()
     {
+        _closed = false;
         if (!_sdlLibraryLoaded)
         {
             initialiseSDL();
@@ -98,14 +99,21 @@ public:
             throw new SDLException("Error copying texture to renderer");
 
         SDL_RenderPresent(_renderer);
+
+        // Determine if the window is closed
+        while (SDL_PollEvent(&_e) != 0)
+        {
+            if (_e.type == SDL_QUIT)
+                _closed = true;
+        }
     }
 
     /**
      * Returns: True if the window closed event has been fired, otherwise false
      */
-    nothrow @nogc bool closed()
+    nothrow @nogc bool closed() const
     {
-        return (SDL_PollEvent(&_e) && (_e.type == SDL_QUIT));
+        return _closed;
     }
 
     /**
@@ -130,6 +138,7 @@ private:
     SDL_Renderer* _renderer;
     SDL_Texture* _texture;
     SDL_Event _e;
+    bool _closed;
 
     ARGB[width][height] _pixels;
 }

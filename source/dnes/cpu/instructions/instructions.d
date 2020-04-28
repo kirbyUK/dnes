@@ -1,6 +1,5 @@
 module dnes.cpu.instructions.instructions;
 
-import core.memory;
 import core.thread;
 import std.stdio;
 
@@ -24,15 +23,13 @@ void executeInstructions(CPU cpu, bool logging)
         Fiber.yield();
 
         // Calculate the effective address
-        ushort address = 0;
-        callFiber(new Fiber((){ address = calculateAddress(instruction); }));
+        const auto address = calculateAddress(instruction);
 
         // Get the value the instruction will work with
-        ubyte value = 0;
-        callFiber(new Fiber((){ value = addressValue(instruction, address); }));
+        const auto value = addressValue(instruction, address);
 
         // Execute the instruction
-        callFiber(new Fiber(() => executeInstruction(instruction, address, value)));
+        executeInstruction(instruction, address, value);
 
         // Check for any queued interrupts and perform the necessary actions
         // if there are any. The BRK and IRQ interrupts are maskable, so do not
@@ -40,12 +37,11 @@ void executeInstructions(CPU cpu, bool logging)
         if ((cpu.interrupt != CPU.Interrupt.NONE) &&
             (!(cpu.interrupt <= CPU.Interrupt.IRQ && cpu.getFlag(CPU.Flag.I))))
         {
-            callFiber(new Fiber(&handleInterrupt));
+            handleInterrupt();
             cpu.resetInterrupt();
         }
 
         cpu.emit(CPU.Event.INSTRUCTION);
-        GC.collect();
     }
 }
 

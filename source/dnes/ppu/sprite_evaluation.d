@@ -4,7 +4,6 @@ import core.thread;
 
 import dnes.cpu;
 import dnes.ppu.ppu;
-import dnes.util;
 
 /**
  * Continously performs the sprite evaluation, which determines which sprites
@@ -14,8 +13,6 @@ import dnes.util;
  */
 void spriteEvaluation()
 {
-    auto initialiseFiber = new Fiber(&initialiseSecondaryOAM);
-    auto spriteEvalFiber = new Fiber(&populateSecondaryOAM);
     while (true)
     {
         // Sprite evaluation occurs if background or sprite rendering is
@@ -30,11 +27,11 @@ void spriteEvaluation()
             assert(ppu.cycles == 1);
 
             // Cycles 1-64 - initialise secondary OAM to $FF
-            callFiber(initialiseFiber);
+            initialiseSecondaryOAM();
             assert(ppu.cycles == 65);
 
             // Cycles 65-256 - sprite evaluation
-            callFiber(spriteEvalFiber);
+            populateSecondaryOAM();
             assert(ppu.cycles == 257);
 
             // The remainder of the work is done by the rendering - the rest
@@ -42,9 +39,6 @@ void spriteEvaluation()
             // we wait for the PPU to grab it
             foreach (_; 0 .. 84)
                 Fiber.yield();
-
-            initialiseFiber.reset();
-            spriteEvalFiber.reset();
         }
         else
         {

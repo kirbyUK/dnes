@@ -30,24 +30,6 @@ pure nothrow @safe @nogc T wrap(T)(uint x)
 }
 
 /**
- * Wraps a Fiber to continously call it and then yield when it does. This
- * allows a main Fiber to call sub-Fibers, and jump back up to the main Fiber's
- * caller when an inner one yields.
- *
- * Params:
- *     fiber = The Fiber to call
- */
-void callFiber(Fiber fiber)
-{
-    while (fiber.state != Fiber.State.TERM)
-    {
-        fiber.call();
-        if (fiber.state != Fiber.State.TERM)
-            Fiber.yield();
-    }
-}
-
-/**
  * Flips a given byte. For example, 0b00010010 becomes 0b01001000
  *
  *
