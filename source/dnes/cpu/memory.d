@@ -44,6 +44,9 @@ public:
             // temporary VRAM address
             tuple(0x2000u, 0x2000u): (ushort, ubyte value) { ppu.t = (ppu.t & 0xf3ff) | ((value & 0x03) << 10); },
 
+            // Writing to OAMDATA writes to the PPU OAM, and increments OAMADDR
+            tuple(0x2004u, 0x2004u): (ushort, ubyte value) { ppu.oamDataWrite(value); },
+
             // Writes to PPUSCROLL set the X then Y scroll positions
             tuple(0x2005u, 0x2005u): (ushort, ubyte value) { ppu.ppuScrollWrite(value); },
 
@@ -129,7 +132,7 @@ public:
      * Overload of the index operator that allows for direct access to the
      * memory with no side effects
      */    
-    nothrow @safe @nogc const(ubyte) opIndex(size_t index) const
+    nothrow @safe @nogc ubyte opIndex(size_t index) const
     in (index >= 0 && index < _memorySize)
     {
         return (index < 0x4020) ?_memory[index] : rom.cpuRead(cast (ushort) index);

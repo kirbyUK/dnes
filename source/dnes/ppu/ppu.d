@@ -10,6 +10,7 @@ import dnes.ppu.memory;
 import dnes.ppu.oam;
 import dnes.ppu.rendering;
 import dnes.ppu.sprite_evaluation;
+import dnes.util;
 
 /**
  * The NES PPU - controls picture rendering
@@ -52,6 +53,23 @@ public:
             cycles = 0;
             if (++scanline > 261)
                 scanline = 0;
+        }
+    }
+
+    /**
+     * Called when an instruction writes to OAMDATA ($2004)
+     *
+     * Params:
+     *     value = The value written to OAMDATA
+     */
+    nothrow @safe @nogc void oamDataWrite(ubyte value)
+    {
+        // Writes are ignored during rendering
+        if (!(ppu.renderBackground() && ppu.renderSprites()) ||
+             (cpu.memory[ppuStatus] & 0x80) == 0)
+        {
+            oam[cpu.memory[oamAddr]] = value;
+            cpu.memory[oamAddr] = wrap!ubyte(cpu.memory[oamAddr] + 1);
         }
     }
 

@@ -19,7 +19,7 @@ void ppuDrawing()
         {
             const auto x = ppu.cycles - 2;
             const auto y = ppu.scanline;
-            if (ppu.renderBackground())
+            if (ppu.renderBackground() || ppu.renderSprites())
             {
                 // Get the background tile pixel value
                 const auto tile = backgroundTile();

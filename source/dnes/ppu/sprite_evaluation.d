@@ -4,6 +4,7 @@ import core.thread;
 
 import dnes.cpu;
 import dnes.ppu.ppu;
+import dnes.util;
 
 /**
  * Continously performs the sprite evaluation, which determines which sprites
@@ -34,10 +35,14 @@ void spriteEvaluation()
             populateSecondaryOAM();
             assert(ppu.cycles == 257);
 
+            // Cycles 257-320 - OAMADDR is reset to zero
+            resetOAMAddr();
+            assert(ppu.cycles == 321);
+
             // The remainder of the work is done by the rendering - the rest
             // of the sprite evaluation is useless reads of secondary OAM while
             // we wait for the PPU to grab it
-            foreach (_; 0 .. 84)
+            foreach (_; 0 .. 20)
                 Fiber.yield();
         }
         else
@@ -67,7 +72,7 @@ void initialiseSecondaryOAM()
  */
 void populateSecondaryOAM()
 {
-    auto n = 0;
+    auto n = cpu.memory[0x2003];
     auto m = 0;
     auto spritesFound = 0;
     while (ppu.cycles < 257)
@@ -112,18 +117,30 @@ void populateSecondaryOAM()
                 foreach (_; 0 .. 3)
                 {
                     m = (m + 1) < 3 ? m + 1 : 0;
-                    n = m == 0 ? n + 1 : n;
+                    n = m == 0 ? wrap!ubyte(n + 1) : n;
                 }
             }
             else
             {
                 // If it is not in range, increment n AND m
                 m = (m + 1) < 3 ? m + 1 : 0;
-                n = m == 0 ? n + 2 : n + 1;
+                n = m == 0 ? wrap!ubyte(n + 2) : wrap!ubyte(n + 1);
             }
         }
         else
             Fiber.yield();
+    }
+}
+
+/**
+ * Resets OAMADDR to zero for 64 cycles
+ */
+void resetOAMAddr()
+{
+    foreach (_; 0 .. 64)
+    {
+        cpu.memory[0x2003] = 0x00;
+        Fiber.yield();
     }
 }
 

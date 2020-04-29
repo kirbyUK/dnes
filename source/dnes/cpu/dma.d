@@ -19,7 +19,7 @@ void oamdma(CPU cpu)
     // DMA transfers 256 bytes from $XX00-$XXFF to the PPU's internal OAM,
     // where $XX is the contents of the OAMDMA (0x4014) PPU register
     const ushort addr = cpu.memory[0x4014] << 8;
-    foreach (i; 0 .. 0xFF)
+    foreach (i; 0 .. 0xff)
     {
         const auto data = cpu.memory[addr | i];
         Fiber.yield();
