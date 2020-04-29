@@ -74,6 +74,10 @@ void ppuRendering()
             // Cycle 0 is an idle scanline
             Fiber.yield();
 
+            // On cycle 1, the sprite overflow and sprite zero hit flags are cleared
+            assert(ppu.cycles == 1);
+            cpu.memory[0x2002] = cpu.memory[0x2002] & 0x9f;
+
             // The prerender scanline makes all the same memory accesses as the
             // visible scanlines, in order to fill the pipeline for rendering
             scanline(true);
