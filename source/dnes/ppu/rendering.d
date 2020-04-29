@@ -105,6 +105,9 @@ void scanline(bool prerender)
         foreach (_; 0 .. 32)
             tileDataFetch();
 
+        // Increment vertical v - this is meant to happen at cycle 256
+        incrementFineYInVramAddr();
+
         // At dot 257, the PPU copies all bits related to horizontal position from
         // t to v. The PPU then fetches tile data for the sprites on the next
         // scanline
@@ -131,9 +134,6 @@ void scanline(bool prerender)
                 Fiber.yield();
             }
         }
-
-        // Increment vertical v - this is meant to happen at cycle 256
-        incrementFineYInVramAddr();
 
         // Fetches the first two tiles of the next scanline
         assert(ppu.cycles == 321);
@@ -189,7 +189,13 @@ void tileDataFetch()
     Fiber.yield();
 
     // Increment horizontal v
-    ppu.v += ppu.vramAddressIncrement();
+    if ((ppu.v & 0x001f) == 31)
+    {
+        ppu.v &= 0xffe0;
+        ppu.v ^= 0x0400;
+    }
+    else
+        ppu.v += 1;
     Fiber.yield();
 
     // Reload the shift registers
@@ -276,7 +282,6 @@ in (spriteNumber >= 0 && spriteNumber <= 8)
  *
  * <https://wiki.nesdev.com/w/index.php/PPU_scrolling#Y_increment>
  */
-/*
 void incrementFineYInVramAddr()
 {
     if ((ppu.v & 0x7000) != 0x7000)
@@ -295,25 +300,5 @@ void incrementFineYInVramAddr()
         else
             y += 1;
         ppu.v = wrap!ushort((ppu.v & ~0x03E0) | (y << 5));
-    }
-}
-*/
-
-/**
- * Increment the fine y portion of the VRAM address, wrapping around to coarse
- * y.
- */
-void incrementFineYInVramAddr()
-{
-    const ubyte fineY = (ppu.v & 0xe000) >> 13;
-    ppu.v = (ppu.v & 0x1fff) | (((fineY + 1) % 8) << 13);
-
-    // The coarse y is naturally incremented during the rendering loop
-    // incorrectly, so reset it unless the fine y is going to wrap
-    if (fineY != 0)
-    {
-        ubyte coarseY = (ppu.v & 0x3e0) >> 5;
-        coarseY = wrap!ubyte(coarseY - 1);
-        ppu.v = (ppu.v & 0xfc1f) | (coarseY << 5);
     }
 }
