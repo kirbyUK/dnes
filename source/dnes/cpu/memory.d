@@ -2,6 +2,7 @@ module dnes.cpu.memory;
 
 import std.typecons;
 
+import dnes.controller;
 import dnes.cpu;
 import dnes.ppu;
 import dnes.rom;
@@ -27,7 +28,7 @@ public:
             },
 
             // Reading JOY1 gets the next button status
-            tuple(0x4016u, 0x4016u): (ushort) { _memory[0x4016] = 0; },
+            tuple(0x4016u, 0x4016u): (ushort) { _memory[0x4016] = controller.read(); },
 
             // Reads to ROM spaced are passed to the ROM to deal with
             tuple(0x4020u, 0xffffu): (ushort addr) { _memory[addr] = rom.cpuRead(addr); }
@@ -60,6 +61,9 @@ public:
 
             // Writes to OAMDMA cause the CPU to enter DMA
             tuple(0x4014u, 0x4014u): (ushort, ubyte) { cpu.dma = true; },
+
+            // Writes to JOY1 cause both controllers to strobe
+            tuple(0x4016u, 0x4016u): (ushort, ubyte value) { controller.strobe(value); },
 
             // Writes to the ROM are passed to it
             tuple(0x4020u, 0xffffu): (ushort addr, ubyte value) { rom.cpuWrite(addr, value); },

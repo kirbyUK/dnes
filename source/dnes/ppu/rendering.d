@@ -56,6 +56,7 @@ void ppuRendering()
             Fiber.yield();
             if (ppu.scanline == 241)
             {
+                ppu.emit(PPU.Event.FRAME);
                 cpu.memory[0x2002] = cpu.memory[0x2002] | 0x80;
                 if (ppu.nmiOnVblank())
                 {

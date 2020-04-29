@@ -2,6 +2,7 @@ module dnes.ppu.ppu;
 
 import core.thread;
 import std.format;
+import std.signals;
 
 import dnes.cpu;
 import dnes.ppu.drawing;
@@ -210,6 +211,18 @@ public:
     ubyte[2][8] spritePatternData; /// High and low pattern bytes for 8 sprites
     ubyte[8] spriteAttribute;      /// Attribute bytes for 8 sprites
     ubyte[8] spriteXPosition;      /// X position bytes for 8 sprites
+
+    /// Enumeration of signal event types
+    enum Event
+    {
+        /// Signal that fires on every frame, regardless of whether rendering
+        /// is enabled or not
+        FRAME,
+    }
+
+    /// Signal mixin - used to send signals to inform external components
+    /// about new frames, vblanks, etc.
+    mixin Signal!(Event);
 
 private:
     // PPU register constants

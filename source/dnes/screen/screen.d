@@ -2,6 +2,7 @@ module dnes.screen.screen;
 
 import bindbc.sdl;
 
+import dnes.ppu;
 import dnes.screen.palette;
 import dnes.screen.sdl;
 
@@ -99,13 +100,6 @@ public:
             throw new SDLException("Error copying texture to renderer");
 
         SDL_RenderPresent(_renderer);
-
-        // Determine if the window is closed
-        while (SDL_PollEvent(&_e) != 0)
-        {
-            if (_e.type == SDL_QUIT)
-                _closed = true;
-        }
     }
 
     /**
@@ -127,7 +121,37 @@ public:
         SDL_Quit();
     }
 
+    /**
+     * Signal handler for the PPU event signals
+     *
+     * Params:
+     *     event = The event type being signalled
+     */
+    nothrow @nogc void ppuEventHandler(PPU.Event event)
+    {
+        switch (event)
+        {
+            case PPU.Event.FRAME:
+                _processSDLEvents();
+                break;
+            default: break;
+        }
+    }
+
 private:
+    /**
+     * Enumerates all SDL events and acts on any we care about
+     */
+    nothrow @nogc void _processSDLEvents()
+    {
+        while (SDL_PollEvent(&_e) != 0)
+        {
+            // Determine if the window is closed
+            if (_e.type == SDL_QUIT)
+                _closed = true;
+        }
+    }
+
     immutable string windowTitle = "dnes";
     immutable int width = 256;
     immutable int height = 240;

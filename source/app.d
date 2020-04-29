@@ -2,6 +2,7 @@ import std.getopt;
 import std.stdio;
 import std.typecons;
 
+import dnes.controller;
 import dnes.cpu;
 import dnes.ppu;
 import dnes.rom;
@@ -60,12 +61,15 @@ int main(string[] args)
         // Load the ROM from the given file
         rom = new ROM(arg[1]);
 
-        // Initialise SDL and the window
+        // Initialise SDL and the window and controller
         screen = new Screen();
+        controller = new Controller();
 
         // Run the emulation
         cpu = new CPU(arg[2]);
         ppu = new PPU(true);
+        ppu.connect(&controller.ppuEventHandler);
+        ppu.connect(&screen.ppuEventHandler);
         while (!screen.closed())
         {
             cpu.tick();
