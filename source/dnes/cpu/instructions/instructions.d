@@ -532,11 +532,12 @@ void executeInstruction(const Instruction instruction, ushort address, ubyte val
 
         case Opcode.SBC:  // Subtract with Carry
             const auto accumulatorPrevious = cpu.acc;
-            const ushort sum = cpu.acc + (value ^ 0xff) + (cpu.getFlag(CPU.Flag.C) ? 1 : 0);
+            const auto negated = value ^ 0xff;
+            const ushort sum = cpu.acc + negated + (cpu.getFlag(CPU.Flag.C) ? 1 : 0);
             cpu.acc = sum & 0x00ff;
             cpu.setFlag(CPU.Flag.C, sum > 0xff);
             cpu.setFlag(CPU.Flag.Z, cpu.acc == 0);
-            cpu.setFlag(CPU.Flag.V, ((~(accumulatorPrevious ^ (value ^ 0xff))) & (accumulatorPrevious ^ cpu.acc) & 0x80) > 0);
+            cpu.setFlag(CPU.Flag.V, ((~(accumulatorPrevious ^ negated)) & (accumulatorPrevious ^ cpu.acc) & 0x80) > 0);
             cpu.setFlag(CPU.Flag.N, (cpu.acc & 0x80) > 0);
             break;
 

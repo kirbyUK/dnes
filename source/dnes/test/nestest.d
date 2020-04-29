@@ -30,7 +30,8 @@ public:
         _executedInstruction = false;
 
         // Parse the log file
-        auto r = regex(r"([0-9A-F]{4}).+A:([0-9A-F]{2}) X:([0-9A-F]{2}) Y:([0-9A-F]{2}) P:([0-9A-F]{2}) SP:([0-9A-F]{2}) CYC:\s*(\d+) SL:\s*(-?\d+)");
+        auto r = regex(r"([0-9A-F]{4}).+A:([0-9A-F]{2}) X:([0-9A-F]{2}) Y:([0-9A-F]{2}) " ~
+                       r"P:([0-9A-F]{2}) SP:([0-9A-F]{2}) CYC:\s*(\d+) SL:\s*(-?\d+)");
         auto file = File(log);
         foreach (line; file.byLine())
         {
