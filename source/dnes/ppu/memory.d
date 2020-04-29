@@ -19,6 +19,20 @@ public:
             // The pattern tables are stored in the ROM
             tuple(0x0000u, 0x1FFFu): (ushort addr) { _memory[addr] = rom.ppuRead(addr); },
         ];
+
+        _writeCallbacks = [
+            // $3F10 is a mirror of $3F00
+            tuple(0x3f10u, 0x3f10u): (ushort, ubyte value) { _memory[0x3f00] = value; },
+
+            // $3F14 is a mirror of $3F04
+            tuple(0x3f14u, 0x3f14u): (ushort, ubyte value) { _memory[0x3f04] = value; },
+
+            // $3F18 is a mirror of $3F08
+            tuple(0x3f18u, 0x3f18u): (ushort, ubyte value) { _memory[0x3f08] = value; },
+
+            // $3F1C is a mirror of $3F0C
+            tuple(0x3f1cu, 0x3f1cu): (ushort, ubyte value) { _memory[0x3f0c] = value; },
+        ];
     }
 
     /**
@@ -41,6 +55,11 @@ public:
      */
     @nogc void set(ushort addr, ubyte value)
     {
+        foreach (k, v; _writeCallbacks)
+        {
+            if ((addr >= k[0]) && (addr <= k[1]))
+                v(addr, value);
+        }
         _memory[addr] = value;
     }
 
@@ -101,4 +120,8 @@ private:
     /// List of callbacks to execute when reading certain addresses. Addresses
     /// are given as an inclusive range of values in a tuple.
     immutable nothrow @safe @nogc void delegate(ushort addr)[Tuple!(uint, uint)] _readCallbacks;
+
+    /// List of callbacks to execute when writing to certain addresses.
+    /// Addresses are given as an inclusive range of values in a tuple.
+    immutable nothrow @nogc void delegate(ushort addr, ubyte value)[Tuple!(uint, uint)] _writeCallbacks;
 }
