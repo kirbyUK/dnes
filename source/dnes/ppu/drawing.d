@@ -127,7 +127,8 @@ out (r; r.isNull || (r.get >= 0 && r.get <= 7))
     foreach (i; 0 .. 8)
     {
         const auto spriteX = ppu.spriteXPosition[i];
-        if ((spriteX != 0xff) && (renderXPos >= spriteX) && (renderXPos < (spriteX + 8)))
+        if ((spriteX != 0xff) && (renderXPos >= spriteX) && (renderXPos < (spriteX + 8)) &&
+            (spriteTile(i, renderXPos) != 0))
             return i.nullable;
     }
 
