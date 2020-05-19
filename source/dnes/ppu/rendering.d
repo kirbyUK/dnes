@@ -167,10 +167,12 @@ void tileDataFetch()
 
     // Fetch the attribute table byte, then select the two attribute bits
     // needed based on bit 1 of both the coarse X and coarse Y values
+    const auto x = tileAddress & 0x001f;
+    const auto y = (tileAddress & 0x03e0) >> 5;
     const auto attributeAddr = wrap!ushort(ppu.baseNametableAddress() + 0x03c0) |
         (ppu.v & 0x0c00) | ((ppu.v >> 4) & 0x38) | ((ppu.v >> 2) & 0x07);
     const auto attributeTableByte = ppu.memory.get(attributeAddr);
-    const ubyte attributeTileSelection = ((ppu.v & 0x0080) >> 6) | ((ppu.v & 0x0002) >> 1);
+    const ubyte attributeTileSelection = (((y % 4) / 2) * 2) + ((x % 4) / 2);
     const ubyte attributeTileBits = (attributeTableByte >> (attributeTileSelection * 2)) & 0x03;
     assert(attributeTileBits < 4);
     Fiber.yield();
