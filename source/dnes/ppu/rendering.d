@@ -32,11 +32,17 @@ void ppuRendering()
         if ((ppu.scanline >= 0) && (ppu.scanline <= 239))
         {
             // Cycle 0 is an idle cycle - it is skipped on the first scanline
-            // if this is an odd frame
-            if ((!oddFrame) && (ppu.scanline == 0))
-                Fiber.yield();
+            // if this is an odd frame. We only care about any of this if
+            // background rendering is enabled
+            if (ppu.renderBackground())
+            {
+                if ((!oddFrame) && (ppu.scanline == 0))
+                    Fiber.yield();
+                else
+                    ppu.cycles++;
+            }
             else
-                ppu.cycles++;
+                Fiber.yield();
             oddFrame = !oddFrame;
 
             // Fills the pipeline for rendering

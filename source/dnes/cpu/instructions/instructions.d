@@ -202,11 +202,12 @@ ubyte addressValue(const Instruction instruction, ushort address)
     ubyte value = 0;
     if ((instruction.addressing != Addressing.IMM) &&
         (instruction.addressing != Addressing.IMP) &&
-        (instruction.addressing != Addressing.REL) &&
-        (instruction.addressing != Addressing.ABS))
+        (instruction.addressing != Addressing.REL))
     {
         switch (instruction.opcode)
         {
+            case Opcode.JMP:
+            case Opcode.JSR:
             case Opcode.STA:
             case Opcode.STX:
             case Opcode.STY:
@@ -283,7 +284,7 @@ void executeInstruction(const Instruction instruction, ushort address, ubyte val
         case Opcode.ASL:  // Arithmetic shift left
             const auto previousValueSignBit = (value & 0x80) >> 7;
             value <<= 1;
-            writeInstruction(instruction, address, value);
+            readModifyWriteInstruction(instruction, address, value);
             cpu.setFlag(CPU.Flag.C, previousValueSignBit > 0);
             cpu.setFlag(CPU.Flag.Z, value == 0);
             cpu.setFlag(CPU.Flag.N, (value & 0x80) > 0);
@@ -371,9 +372,7 @@ void executeInstruction(const Instruction instruction, ushort address, ubyte val
 
         case Opcode.DEC:  // Decrement Memory
             const ubyte newValue = cast(ubyte)(value - 1);
-            Fiber.yield();
-            cpu.memory.set(address, newValue);
-            Fiber.yield();
+            readModifyWriteInstruction(instruction, address, newValue);
             cpu.setFlag(CPU.Flag.Z, newValue == 0);
             cpu.setFlag(CPU.Flag.N, (newValue & 0x80) > 0);
             break;
@@ -397,11 +396,8 @@ void executeInstruction(const Instruction instruction, ushort address, ubyte val
             break;
 
         case Opcode.INC:  // Increment Memory    
-            const auto prevValue = cpu.memory.get(address);
-            const auto newValue = wrap!ubyte(prevValue + 1);
-            Fiber.yield();
-            cpu.memory.set(address, newValue);
-            Fiber.yield();
+            const auto newValue = wrap!ubyte(cpu.memory.get(address) + 1);
+            readModifyWriteInstruction(instruction, address, newValue);
             cpu.setFlag(CPU.Flag.Z, newValue == 0);
             cpu.setFlag(CPU.Flag.N, (newValue & 0x80) > 0);
             break;
@@ -455,7 +451,7 @@ void executeInstruction(const Instruction instruction, ushort address, ubyte val
         case Opcode.LSR:  // Arithmetic shift right
             const auto previousValueLowBit = value & 0x01;
             value >>= 1;
-            writeInstruction(instruction, address, value);
+            readModifyWriteInstruction(instruction, address, value);
             cpu.setFlag(CPU.Flag.C, previousValueLowBit > 0);
             cpu.setFlag(CPU.Flag.Z, value == 0);
             cpu.setFlag(CPU.Flag.N, (value & 0x80) > 0);
@@ -495,7 +491,7 @@ void executeInstruction(const Instruction instruction, ushort address, ubyte val
         case Opcode.ROL:  // Rotate Left
             const auto oldHighBit = (value & 0x80) >> 7;
             const auto rotated = wrap!ubyte(value << 1) | (cpu.getFlag(CPU.Flag.C) ? 1 : 0);
-            writeInstruction(instruction, address, rotated);
+            readModifyWriteInstruction(instruction, address, rotated);
             cpu.setFlag(CPU.Flag.C, oldHighBit > 0);
             cpu.setFlag(CPU.Flag.Z, rotated == 0);
             cpu.setFlag(CPU.Flag.N, (rotated & 0x80) > 0);
@@ -504,13 +500,14 @@ void executeInstruction(const Instruction instruction, ushort address, ubyte val
         case Opcode.ROR:  // Rotate Right
             const auto oldLowBit = value & 0x01;
             const auto rotated = (value >> 1) | (cpu.getFlag(CPU.Flag.C) ? 0x80 : 0);
-            writeInstruction(instruction, address, rotated);
+            readModifyWriteInstruction(instruction, address, rotated);
             cpu.setFlag(CPU.Flag.C, oldLowBit > 0);
             cpu.setFlag(CPU.Flag.Z, rotated == 0);
             cpu.setFlag(CPU.Flag.N, (rotated & 0x80) > 0);
             break;
 
         case Opcode.RTI:  // Return from Interrupt
+            Fiber.yield();
             cpu.status = (cpu.memory.pop() & 0xef) | 0x20;
             Fiber.yield();
             const auto pcLo = cpu.memory.pop();
@@ -677,8 +674,8 @@ void handleInterrupt()
 }
 
 /**
- * Common code for all instructions that could write to a memory address or
- * the accumulator, depending on the addressing mode
+ * Common code for all instructions that could write to a memory addressor
+ * the accumulator without first reading it, depending on the addressing mode
  *
  * Params:
  *     instruction = The instruction being executed
@@ -689,6 +686,30 @@ void writeInstruction(const Instruction instruction, ushort address, ubyte value
 {
     if (instruction.addressing != Addressing.IMP)
     {
+        cpu.memory.set(address, value);
+        Fiber.yield();
+    }
+    else
+        cpu.acc = value;
+}
+
+/**
+ * Common code for all instructions that could write to a memory address or
+ * the accumulator after having read and modified a value, depending on the
+ * addressing mode
+ *
+ * Params:
+ *     instruction = The instruction being executed
+ *     address     = The address determined from the instruction
+ *     value       = The value to write
+ */
+void readModifyWriteInstruction(const Instruction instruction, ushort address, ubyte value)
+{
+    if (instruction.addressing != Addressing.IMP)
+    {
+        // These instructions write the original value back to memory before
+        // then writing the modified value
+        Fiber.yield();
         cpu.memory.set(address, value);
         Fiber.yield();
     }

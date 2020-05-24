@@ -140,7 +140,7 @@ private:
             cpu.status,
             cpu.sp,
             ppu.cycles,
-            ppu.scanline
+            ppu.scanline == 261 ? -1 : ppu.scanline
         );
     }
 
