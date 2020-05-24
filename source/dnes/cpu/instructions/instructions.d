@@ -81,6 +81,42 @@ pure nothrow @safe @nogc bool crossesPageBoundary(ushort oldAddress, ushort newA
 }
 
 /**
+ * Determine if a calculated address from an addressing mode crosses a page
+ * boundary
+ *
+ * Params:
+ *     instruction = The instruction whose address is being calculated
+ *     oldAddress  = The previous address
+ *     newAddress  = The newer address
+ *
+ * Returns: True if moving from the old to new address crosses a page boundary
+ */
+pure nothrow @safe @nogc bool calculatedAddressCrossesPageBoundary(
+    const Instruction instruction, ushort oldAddress, ushort newAddress)
+{
+    // Page boundary crossings in this context are only applicable to
+    // read instructions - ones that do not affect memory
+    switch (instruction.opcode)
+    {
+        case Opcode.ADC:
+        case Opcode.AND:
+        case Opcode.BIT:
+        case Opcode.CMP:
+        case Opcode.EOR:
+        case Opcode.LDA:
+        case Opcode.LDX:
+        case Opcode.LDY:
+        case Opcode.ORA:
+        case Opcode.SBC:
+            if (crossesPageBoundary(oldAddress, newAddress))
+                return true;
+            else
+                return false;
+        default: return false;
+    }
+}
+
+/**
  * Calculate the effective address the instruction is targeting, taking into
  * account the addressing mode.
  * Timings: <http://nesdev.com/6502_cpu.txt>
@@ -139,9 +175,15 @@ ushort calculateAddress(const Instruction instruction)
         case Addressing.ZRP:
             return concat(0, lo);
         case Addressing.INX:
-            return (wrap!ushort(concat(hi, lo) + cpu.x));
+            const auto address = wrap!ushort(concat(hi, lo) + cpu.x);
+            if (calculatedAddressCrossesPageBoundary(instruction, concat(hi, lo), address))
+                Fiber.yield();
+            return address;
         case Addressing.INY:
-            return (wrap!ushort(concat(hi, lo) + cpu.y));
+            const auto address = wrap!ushort(concat(hi, lo) + cpu.y);
+            if (calculatedAddressCrossesPageBoundary(instruction, concat(hi, lo), address))
+                Fiber.yield();
+            return address;
         case Addressing.ZRX:
             const auto addr = concat(0, wrap!ubyte(lo + cpu.x));
             Fiber.yield();
@@ -165,7 +207,10 @@ ushort calculateAddress(const Instruction instruction)
             Fiber.yield();
             const auto addrHi = cpu.memory.get(wrap!ubyte(lo + 1));
             Fiber.yield();
-            return wrap!ushort(concat(addrHi, addrLo) + cpu.y);
+            const auto address = wrap!ushort(concat(addrHi, addrLo) + cpu.y);
+            if (calculatedAddressCrossesPageBoundary(instruction, concat(addrHi, addrLo), address))
+                Fiber.yield();
+            return address;
         case Addressing.IDX:
             auto pointer = wrap!ubyte(lo + cpu.x);
             Fiber.yield();
@@ -222,32 +267,6 @@ ubyte addressValue(const Instruction instruction, ushort address)
         value = address & 0x00ff;
     else if (instruction.addressing == Addressing.IMP)
         value = cpu.acc;
-
-    // Check for page boundary crossings, and add an extra cycle if so:
-    if ((instruction.addressing == Addressing.INX) ||
-        (instruction.addressing == Addressing.INY) ||
-        (instruction.addressing == Addressing.IDY))
-    {
-        // Page boundary crossings in this context are only applicable to
-        // read instructions - ones that do not affect memory
-        switch (instruction.opcode)
-        {
-            case Opcode.ADC:
-            case Opcode.AND:
-            case Opcode.BIT:
-            case Opcode.CMP:
-            case Opcode.EOR:
-            case Opcode.LDA:
-            case Opcode.LDX:
-            case Opcode.LDY:
-            case Opcode.ORA:
-            case Opcode.SBC:
-                if (crossesPageBoundary(cpu.pc, address))
-                    Fiber.yield();
-                break;
-            default: break;
-        }
-    }
 
     return value;
 }
