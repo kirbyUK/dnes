@@ -94,10 +94,10 @@ pure nothrow @safe @nogc bool crossesPageBoundary(ushort oldAddress, ushort newA
 pure nothrow @safe @nogc bool calculatedAddressCrossesPageBoundary(
     const Instruction instruction, ushort oldAddress, ushort newAddress)
 {
-    // Page boundary crossings in this context are only applicable to
-    // read instructions - ones that do not affect memory
     switch (instruction.opcode)
     {
+        // Page boundary crossings in this context are only applicable to read
+        // instructions - ones that do not affect memory.
         case Opcode.ADC:
         case Opcode.AND:
         case Opcode.BIT:
@@ -112,6 +112,17 @@ pure nothrow @safe @nogc bool calculatedAddressCrossesPageBoundary(
                 return true;
             else
                 return false;
+        // Write instructions always have an additional cycle
+        case Opcode.ASL:
+        case Opcode.DEC:
+        case Opcode.INC:
+        case Opcode.LSR:
+        case Opcode.ROL:
+        case Opcode.ROR:
+        case Opcode.STA:
+        case Opcode.STX:
+        case Opcode.STY:
+            return true;
         default: return false;
     }
 }
