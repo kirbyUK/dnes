@@ -112,7 +112,8 @@ public:
      */
     @property nothrow @safe @nogc void interrupt(Interrupt i)
     {
-        if (i > _interrupt)
+        const auto isMasked = (cpu.getFlag(CPU.Flag.I) && i <= Interrupt.IRQ);
+        if ((i > _interrupt) && (!isMasked))
             _interrupt = i;
     }
 

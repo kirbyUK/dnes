@@ -513,7 +513,7 @@ void executeInstruction(const Instruction instruction, ushort address, ubyte val
             break;
 
         case Opcode.PLP:  // Pull Processor Status
-            cpu.status = (cpu.memory.pop() & 0xef) | 0x20;
+            cpu.status = (cpu.memory.pop() & 0xcf) | 0x20;
             Fiber.yield();
             Fiber.yield();
             break;
@@ -538,7 +538,7 @@ void executeInstruction(const Instruction instruction, ushort address, ubyte val
 
         case Opcode.RTI:  // Return from Interrupt
             Fiber.yield();
-            cpu.status = (cpu.memory.pop() & 0xef) | 0x20;
+            cpu.status = (cpu.memory.pop() & 0xcf) | 0x20;
             Fiber.yield();
             const auto pcLo = cpu.memory.pop();
             Fiber.yield();
@@ -635,75 +635,6 @@ void executeInstruction(const Instruction instruction, ushort address, ubyte val
 }
 
 /**
- * Called if there is a queued interrupt - performs the necessary memory reads
- * and writes and sets the PC to the interrupt vector.
- * <https://wiki.nesdev.com/w/index.php/CPU_interrupts>
- */
-void handleInterrupt()
-{
-    const auto isBRK = (cpu.interrupt == CPU.Interrupt.BRK);
-
-    // The first two ticks read the opcode and the next instruction
-    // byte from memory. BRK interrupts increment the PC each time,
-    // others do not. These values are not used, so we don't actually
-    // need to read the memory
-    cpu.pc += (isBRK) ? 1 : 0;
-    Fiber.yield();
-    cpu.pc += (isBRK) ? 1 : 0;
-    Fiber.yield();
-
-    // The next two cycles push the PC to the stack. In a RESET, the
-    // writes are not actually performed, but sp is decremented as if
-    // they were
-    if (cpu.interrupt != CPU.Interrupt.RESET)
-    {
-        cpu.memory.push((cpu.pc & 0xff00) >> 8);
-        Fiber.yield();
-        cpu.memory.push(cpu.pc & 0x00ff);
-        Fiber.yield();
-    }
-    else
-    {
-        cpu.sp--;
-        Fiber.yield();
-        cpu.sp--;
-        Fiber.yield();
-    }
-
-    // Next the CPU flags are pushed to the stack. The B flag is set to
-    // true if this is a BRK, false if not. Again, in a RESET the
-    // write is fake
-    cpu.setFlag(CPU.Flag.B, isBRK);
-    if (cpu.interrupt != CPU.Interrupt.RESET)
-    {
-        if (!isBRK)
-            cpu.setFlag(CPU.Flag.B, false);
-        cpu.memory.push(cpu.sp | isBRK ? 0x30 : 0x20);
-        Fiber.yield();
-    }
-    else
-    {
-        cpu.sp--;
-        Fiber.yield();
-    }
-
-    // The final two cycles fetch the new address from the interrupt
-    // vector and set it to the PC
-    immutable ushort[CPU.Interrupt] interruptVectors = [
-        CPU.Interrupt.NMI:   0xfffa,
-        CPU.Interrupt.RESET: 0xfffc,
-        CPU.Interrupt.IRQ:   0xfffe,
-        CPU.Interrupt.BRK:   0xfffe,
-    ];
-    const auto interruptVector = interruptVectors[cpu.interrupt];
-    cpu.pc = cpu.memory.get(interruptVector);
-    cpu.setFlag(CPU.Flag.I, true);
-    Fiber.yield();
-    cpu.pc |= cpu.memory.get(wrap!ushort((interruptVector + 1))) << 8;
-    Fiber.yield();
-}
-
-/**
  * Common code for all instructions that could write to a memory addressor
  * the accumulator without first reading it, depending on the addressing mode
  *
@@ -764,4 +695,74 @@ void branchInstruction(ushort addr, bool condition)
         cpu.pc = branchedAddress;
         Fiber.yield();
     }
+}
+
+/**
+ * Called if there is a queued interrupt - performs the necessary memory reads
+ * and writes and sets the PC to the interrupt vector.
+ * <https://wiki.nesdev.com/w/index.php/CPU_interrupts>
+ */
+void handleInterrupt()
+{
+    const auto isBRK = (cpu.interrupt == CPU.Interrupt.BRK);
+
+    // The first two ticks read the opcode and the next instruction byte from
+    // memory. These values are not used, so we don't actually need to read the
+    // memory. This process occurs naturally during the instruction processing
+    // above for BRK.
+    if (!isBRK)
+    {
+        Fiber.yield();
+        Fiber.yield();
+    }
+    else
+        cpu.pc += 2;
+
+    // The next two cycles push the PC to the stack. In a RESET, the
+    // writes are not actually performed, but sp is decremented as if
+    // they were
+    if (cpu.interrupt != CPU.Interrupt.RESET)
+    {
+        cpu.memory.push((cpu.pc & 0xff00) >> 8);
+        Fiber.yield();
+        cpu.memory.push(cpu.pc & 0x00ff);
+        Fiber.yield();
+    }
+    else
+    {
+        cpu.sp--;
+        Fiber.yield();
+        cpu.sp--;
+        Fiber.yield();
+    }
+
+    // Next the CPU flags are pushed to the stack. The B flag is set to
+    // true if this is a BRK, false if not. Again, in a RESET the
+    // write is fake
+    if (cpu.interrupt != CPU.Interrupt.RESET)
+    {
+        cpu.memory.push((cpu.status & 0xcf) | (isBRK) ? 0x30 : 0x20);
+        Fiber.yield();
+    }
+    else
+    {
+        cpu.sp--;
+        Fiber.yield();
+    }
+
+    // The final two cycles fetch the new address from the interrupt
+    // vector and set it to the PC
+    immutable ushort[CPU.Interrupt] interruptVectors = [
+        CPU.Interrupt.NMI:   0xfffa,
+        CPU.Interrupt.RESET: 0xfffc,
+        CPU.Interrupt.IRQ:   0xfffe,
+        CPU.Interrupt.BRK:   0xfffe,
+    ];
+    const auto interruptVector = interruptVectors[cpu.interrupt];
+    const auto pcLo = cpu.memory.get(interruptVector);
+    cpu.setFlag(CPU.Flag.I, true);
+    Fiber.yield();
+    const auto pcHi = cpu.memory.get(wrap!ushort(interruptVector + 1));
+    cpu.pc = concat(pcHi, pcLo);
+    Fiber.yield();
 }
