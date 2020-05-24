@@ -80,17 +80,7 @@ int main(string[] args)
 
         screen.close();
     }
-    catch (SDLLoadException e)
-    {
-        writeln(e.msg);
-        ret = 1;
-    }
-    catch (SDLException e)
-    {
-        writeln(e.msg);
-        ret = 1;
-    }
-    catch (UnknownInstructionException e)
+    catch (Exception e)
     {
         writeln(e.msg);
         ret = 1;
