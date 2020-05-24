@@ -202,7 +202,8 @@ ubyte addressValue(const Instruction instruction, ushort address)
     ubyte value = 0;
     if ((instruction.addressing != Addressing.IMM) &&
         (instruction.addressing != Addressing.IMP) &&
-        (instruction.addressing != Addressing.REL))
+        (instruction.addressing != Addressing.REL) &&
+        (instruction.addressing != Addressing.ABS))
     {
         switch (instruction.opcode)
         {

@@ -67,6 +67,7 @@ public:
         cpu.pc = 0xc000;
         cpu.status = 0x24;
         ppu.scanline = 241;
+        _cpuState = cpuStateToInstructionLog();
 
         // Register the signal listener that will determine when the CPU
         // executes a full instruction
@@ -77,7 +78,7 @@ public:
         int instruction = 0;
         try
         {
-            while (cpuMatchesInstructionLog(_instructionReferenceLog[instruction]))
+            while (_cpuState == _instructionReferenceLog[instruction])
             {
                 while (!_executedInstruction)
                 {
@@ -99,7 +100,8 @@ public:
                 "[DNES] PC:%04X A:%02X X:%02X Y:%02X P:%02X SP:%02X CYC:%d SL:%d\n",
                 instruction,
                 instr.addr, instr.a, instr.x, instr.y, instr.p, instr.sp, instr.cyc, instr.sl,
-                cpu.pc, cpu.acc, cpu.x, cpu.y, cpu.status, cpu.sp, ppu.cycles, ppu.scanline
+                _cpuState.addr, _cpuState.a, _cpuState.x, _cpuState.y, _cpuState.p, _cpuState.sp,
+                _cpuState.cyc, _cpuState.sl
             );
         }
         catch (UnknownInstructionException)
@@ -126,17 +128,19 @@ public:
 
 private:
     /**
-     * Returns: True if the CPU state matches the InstructionLog passed
+     * Returns: The current CPU state as an InstructionLog
      */
-    bool cpuMatchesInstructionLog(const InstructionLog log)
+    InstructionLog cpuStateToInstructionLog()
     {
-        return (
-            (cpu.pc == log.addr) &&
-            (cpu.acc == log.a) &&
-            (cpu.x == log.x) &&
-            (cpu.y == log.y) &&
-            (cpu.status == log.p) &&
-            (cpu.sp == log.sp)
+        return InstructionLog(
+            cpu.pc,
+            cpu.acc,
+            cpu.x,
+            cpu.y,
+            cpu.status,
+            cpu.sp,
+            ppu.cycles,
+            ppu.scanline
         );
     }
 
@@ -146,7 +150,10 @@ private:
     void cpuFinishesInstructionWatcher(CPU.Event event)
     {
         if (event == CPU.Event.INSTRUCTION)
+        {
             _executedInstruction = true;
+            _cpuState = cpuStateToInstructionLog();
+        }
     }
 
     /**
@@ -164,6 +171,7 @@ private:
         int sl;
     }
     InstructionLog[] _instructionReferenceLog;
+    InstructionLog _cpuState;
 
     bool _passed;
     string _failureString;
