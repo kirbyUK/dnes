@@ -212,23 +212,25 @@ void tileDataFetch()
     // we need to flip the nametable bytes.
     ppu.patternData[0] = (ppu.patternData[0] & 0x00ff) | (flip(patternTableTileLo) << 8);
     ppu.patternData[1] = (ppu.patternData[1] & 0x00ff) | (flip(patternTableTileHi) << 8);
+    ppu.paletteData[0][0] = ppu.paletteData[1][0];
+    ppu.paletteData[0][1] = ppu.paletteData[1][1];
     final switch (attributeTileBits)
     {
         case 0:
-            ppu.paletteData[0] = 0x00;
-            ppu.paletteData[1] = 0x00;
+            ppu.paletteData[1][0] = 0x00;
+            ppu.paletteData[1][1] = 0x00;
             break;
         case 1:
-            ppu.paletteData[0] = 0xff;
-            ppu.paletteData[1] = 0x00;
+            ppu.paletteData[1][0] = 0xff;
+            ppu.paletteData[1][1] = 0x00;
             break;
         case 2:
-            ppu.paletteData[0] = 0x00;
-            ppu.paletteData[1] = 0xff;
+            ppu.paletteData[1][0] = 0x00;
+            ppu.paletteData[1][1] = 0xff;
             break;
         case 3:
-            ppu.paletteData[0] = 0xff;
-            ppu.paletteData[1] = 0xff;
+            ppu.paletteData[1][0] = 0xff;
+            ppu.paletteData[1][1] = 0xff;
             break;
     }
 }

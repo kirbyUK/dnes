@@ -218,8 +218,8 @@ public:
 
     /// Background rendering registers
     ushort[2] patternData; /// Contains the pattern table data for two tiles
-    ubyte[2] paletteData;  /// Contains the palette attributes for the lower
-                           /// 8 pixels of 16-bit shift register
+    ubyte[2][2] paletteData;  /// Contains the palette attributes for the lower
+                              /// 8 pixels of 16-bit shift register
 
     /// The PPU OAM memory
     ubyte[256] oam;         /// Primary OAM, 64 sprites
