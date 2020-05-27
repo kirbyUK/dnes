@@ -19,11 +19,12 @@ public:
     nothrow @safe this()
     {
         _preReadCallbacks = [
-            // Reading PPUADDR retrieves the value from PPU memory according to
+            // Reading PPUDATA retrieves the value from PPU memory according to
             // the PPU's internal pointer, which is set by writing to PPUADDR.
             // It then increments the address
-            tuple(0x2007u, 0x2007u): (ushort addr) { 
-                _memory[addr] = ppu.memory[ppu.v];
+            tuple(0x2007u, 0x2007u): (ushort addr) {
+                _memory[0x2007] = ppu.ppuDataReadBuffer;
+                ppu.ppuDataReadBuffer = ppu.memory.get(ppu.v);
                 ppu.v += ppu.vramAddressIncrement();
             },
 
@@ -58,7 +59,7 @@ public:
             // memory - the address is determined by writes to PPUADDR. It then
             // increments the internal address
             tuple(0x2007u, 0x2007u): (ushort, ubyte value) {
-                ppu.memory[ppu.v] = value;
+                ppu.memory.set(ppu.v, value);
                 ppu.v += ppu.vramAddressIncrement();
             },
 
@@ -184,10 +185,10 @@ private:
 
     /// List of callbacks to execute when reading certain addresses. Addresses
     /// are given as an inclusive range of values in a tuple.
-    immutable nothrow @safe @nogc void delegate(ushort addr)[Tuple!(uint, uint)] _preReadCallbacks;
-    immutable nothrow @safe @nogc void delegate(ushort addr)[Tuple!(uint, uint)] _postReadCallbacks;
+    immutable @safe @nogc void delegate(ushort addr)[Tuple!(uint, uint)] _preReadCallbacks;
+    immutable @safe @nogc void delegate(ushort addr)[Tuple!(uint, uint)] _postReadCallbacks;
 
     /// List of callbacks to execute when writing to certain addresses.
     /// Addresses are given as an inclusive range of values in a tuple.
-    immutable nothrow @nogc void delegate(ushort addr, ubyte value)[Tuple!(uint, uint)] _writeCallbacks;
+    immutable @nogc void delegate(ushort addr, ubyte value)[Tuple!(uint, uint)] _writeCallbacks;
 }

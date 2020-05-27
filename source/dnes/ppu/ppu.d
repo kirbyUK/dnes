@@ -230,6 +230,9 @@ public:
     ubyte[8] spriteAttribute;      /// Attribute bytes for 8 sprites
     ubyte[8] spriteXPosition;      /// X position bytes for 8 sprites
 
+    /// The read buffer when reading from PPUDATA ($2007)
+    ubyte ppuDataReadBuffer;
+
     /// Enumeration of signal event types
     enum Event
     {
