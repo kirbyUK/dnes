@@ -82,8 +82,6 @@ void ppuDrawing()
             // Shift the registers for the next value
             ppu.patternData[0] >>= 1;
             ppu.patternData[1] >>= 1;
-            ppu.paletteData[0][0] >>= 1;
-            ppu.paletteData[0][1] >>= 1;
         }
 
         Fiber.yield();
