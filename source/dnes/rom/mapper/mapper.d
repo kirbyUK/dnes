@@ -1,5 +1,8 @@
 module dnes.rom.mapper.mapper;
 
+import std.exception;
+import std.format;
+
 import dnes.rom.header;
 import dnes.rom.mapper.mapper0;
 
@@ -49,6 +52,23 @@ interface Mapper
 }
 
 /**
+ * Exception thrown when a ROM presents an unknown mapper value
+ */
+class MapperException : Exception
+{
+    /**
+     * Constructor
+     *
+     * Params:
+     *     mapper = The failing mapper number
+     */
+    @safe this(int mapper)
+    {
+        super(format("Unknown mapper number: %d", mapper), __FILE__, __LINE__);
+    }
+}
+
+/**
  * Constructs a new Mapper-implementing object depending on the passed mapper
  * id number
  *
@@ -64,6 +84,6 @@ Mapper createMapper(int id, const Header* header, ubyte[] data)
     switch (id)
     {
         case 0: return new Mapper0(header, data);
-        default: return null;
+        default: throw new MapperException(id);
     }
 }
