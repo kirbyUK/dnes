@@ -16,7 +16,6 @@ public:
     nothrow @safe @nogc this()
     {
         _current = 0;
-        _strobe = false;
     }
 
     /**
@@ -27,7 +26,6 @@ public:
      */
     nothrow @safe @nogc void strobe(ubyte value)
     {
-        _strobe = value > 0;
         _current = 0;
     }
 
@@ -38,14 +36,10 @@ public:
      *          this is. Bit 7 is always high.
      */
     nothrow @safe @nogc ubyte read()
-    out(r; (r == 0x40) || (r == 0x41))
+    out(r; r == 0x40 || r == 0x41)
     {
-        // If the strobe is activated, reading from the register always returns
-        // the state of the A button. Any reads past the first 8 return 1 on
-        // official controllers
-        if (_strobe)
-            return (_buttons[0] & 0x01) | 0x40;
-        else if (_current > 7)
+        // Any reads past the first 8 return 1 on official controllers
+        if (_current > 7)
             return 0x41;
 
         return (_buttons[_current++] & 0x01) | 0x40;
@@ -87,7 +81,6 @@ private:
 
     ubyte[8] _buttons;
     int _current;
-    bool _strobe;
 }
 
 // Export a global variable
