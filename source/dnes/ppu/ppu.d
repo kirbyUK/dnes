@@ -229,6 +229,7 @@ public:
     ubyte[2][8] spritePatternData; /// High and low pattern bytes for 8 sprites
     ubyte[8] spriteAttribute;      /// Attribute bytes for 8 sprites
     ubyte[8] spriteXPosition;      /// X position bytes for 8 sprites
+    ubyte[8] spriteNumber;         /// The primary OAM number of each selected sprite
 
     /// The read buffer when reading from PPUDATA ($2007)
     ubyte ppuDataReadBuffer;

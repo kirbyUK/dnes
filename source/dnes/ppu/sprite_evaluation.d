@@ -98,6 +98,7 @@ void populateSecondaryOAM()
                     ppu.secondaryOAM[(spritesFound * 4) + i] = oamValue;
                     Fiber.yield();
                 }
+                ppu.spriteNumber[spritesFound] = n;
                 spritesFound++;
             }
 

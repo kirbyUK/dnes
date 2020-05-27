@@ -3,6 +3,7 @@ module dnes.ppu.drawing;
 import core.thread;
 import std.typecons;
 
+import dnes.cpu;
 import dnes.ppu.ppu;
 import dnes.screen;
 
@@ -65,6 +66,10 @@ void ppuDrawing()
                         const auto paletteAddr = backgroundPaletteBase[backgroundPalette()] + (tile - 1);
                         screen.draw(ppu.memory[paletteAddr], x, y);
                     }
+
+                    // If this is sprite 0, then set the sprite 0 hit flag
+                    if (ppu.spriteNumber[selectedSprite.get] == 0)
+                        cpu.memory[0x2002] = cpu.memory[0x2002] | 0x40;
                 }
             }
             else
