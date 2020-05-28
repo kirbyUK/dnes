@@ -73,17 +73,16 @@ class MapperException : Exception
  * id number
  *
  * Params:
- *     id     = The mapper number to create
  *     header = The header of the ROM file
  *     data   = The data of the ROM, minus the header
  *
  * Returns: The constructed Mapper object
  */
-Mapper createMapper(int id, const Header* header, ubyte[] data)
+Mapper createMapper(const Header* header, ubyte[] data)
 {
-    switch (id)
+    switch (header.mappingNumber())
     {
         case 0: return new Mapper0(header, data);
-        default: throw new MapperException(id);
+        default: throw new MapperException(header.mappingNumber());
     }
 }

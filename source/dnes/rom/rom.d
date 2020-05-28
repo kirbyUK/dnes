@@ -26,7 +26,7 @@ public:
         file.close();
 
         header = cast(Header*) _data.ptr;
-        mapper = createMapper(mappingNumber(), header, _data[Header.sizeof..$]);
+        mapper = createMapper(header, _data[Header.sizeof..$]);
     }
 
     /**
@@ -77,34 +77,6 @@ public:
     nothrow @safe @nogc void ppuWrite(ushort addr, ubyte value)
     {
         mapper.ppuWrite(addr, value);
-    }
-
-    /**
-     * Returns: True if the ROM contains a trainer, false if not
-     */
-    nothrow @safe @nogc bool containsTrainer() const
-    {
-        return ((header.control1 & 0x04) > 0);
-    }
-
-    /**
-     * Returns: The mirroring used by the ROM
-     */
-    nothrow @safe @nogc Mirroring mirroring() const
-    {
-        return ((header.control1 & 0x08) > 0) ?
-            Mirroring.FOURWAY :
-            ((header.control1 & 0x01) > 0) ?
-                Mirroring.VERTICAL :
-                Mirroring.HORIZONTAL;
-    }
-
-    /**
-     * Returns: The ROM mapper number
-     */
-    nothrow @safe @nogc uint mappingNumber() const
-    {
-        return ((header.control1 >> 4) | (header.control2 & 0x0f));
     }
 
     /// The ROM's header
