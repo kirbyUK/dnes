@@ -3,6 +3,7 @@ module dnes.ppu.memory;
 import std.typecons;
 
 import dnes.rom;
+import dnes.ppu.mirroring;
 
 /**
  * The PPU memory
@@ -17,10 +18,18 @@ public:
     {
         _readCallbacks = [
             // The pattern tables are stored in the ROM
-            tuple(0x0000u, 0x1FFFu): (ushort addr) { _memory[addr] = rom.ppuRead(addr); },
+            tuple(0x0000u, 0x1fffu): (ushort addr) { _memory[addr] = rom.ppuRead(addr); },
+
+            // Reading the nametables is affected by the type of mirroring used
+            // by the ROM
+            tuple(0x2000u, 0x2fffu): (ushort addr) { _memory[addr] = _memory[nametableMirroring(addr)]; },
         ];
 
         _writeCallbacks = [
+            // Writing to the nametable space is affected by the type of
+            // mirroring used in the ROM
+            tuple(0x2000u, 0x2fffu): (ushort addr, ubyte value) { _memory[nametableMirroring(addr)] = value; },
+
             // $3F10 is a mirror of $3F00
             tuple(0x3f10u, 0x3f10u): (ushort, ubyte value) { _memory[0x3f00] = value; },
 
