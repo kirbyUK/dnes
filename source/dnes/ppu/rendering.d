@@ -66,7 +66,6 @@ void ppuRendering()
                 cpu.memory[0x2002] = cpu.memory[0x2002] | 0x80;
                 if (ppu.nmiOnVblank())
                     cpu.interrupt = CPU.Interrupt.NMI;
-                screen.render();
             }
             Fiber.yield();
             foreach (_; 0 .. 339)

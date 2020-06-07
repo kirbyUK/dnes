@@ -79,30 +79,6 @@ public:
     }
 
     /**
-     * Draws a new frame
-     *
-     * Throws: SDLException if an error occurs rendering the frame
-     */
-    void render()
-    {
-        if (SDL_UpdateTexture(
-            _texture,
-            null,
-            cast (void*)(_pixels.ptr),
-            cast (int)(width * ARGB.sizeof)
-        ) != 0)
-            throw new SDLException("Error updating texture");
-
-        if (SDL_RenderClear(_renderer) != 0)
-            throw new SDLException("Error clearing renderer");
-
-        if (SDL_RenderCopy(_renderer, _texture, null, null) != 0)
-            throw new SDLException("Error copying texture to renderer");
-
-        SDL_RenderPresent(_renderer);
-    }
-
-    /**
      * Returns: True if the window closed event has been fired, otherwise false
      */
     nothrow @nogc bool closed() const
@@ -127,12 +103,13 @@ public:
      * Params:
      *     event = The event type being signalled
      */
-    nothrow @nogc void ppuEventHandler(PPU.Event event)
+    void ppuEventHandler(PPU.Event event)
     {
         switch (event)
         {
             case PPU.Event.FRAME:
                 _processSDLEvents();
+		_render();
                 break;
             default: break;
         }
@@ -151,6 +128,31 @@ private:
                 _closed = true;
         }
     }
+
+    /**
+     * Draws a new frame
+     *
+     * Throws: SDLException if an error occurs rendering the frame
+     */
+    void _render()
+    {
+        if (SDL_UpdateTexture(
+            _texture,
+            null,
+            cast (void*)(_pixels.ptr),
+            cast (int)(width * ARGB.sizeof)
+        ) != 0)
+            throw new SDLException("Error updating texture");
+
+        if (SDL_RenderClear(_renderer) != 0)
+            throw new SDLException("Error clearing renderer");
+
+        if (SDL_RenderCopy(_renderer, _texture, null, null) != 0)
+            throw new SDLException("Error copying texture to renderer");
+
+        SDL_RenderPresent(_renderer);
+    }
+
 
     immutable string windowTitle = "dnes";
     immutable int width = 256;
