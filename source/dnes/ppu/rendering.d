@@ -269,11 +269,11 @@ in (spriteNumber >= 0 && spriteNumber <= 8)
     const auto patternTableAddr = wrap!ushort(
         ppu.spritePatternTableAddress() + (patternIndex * 16) + patternTableAddrOffset
     );
-    const auto patternTableLo = patternIndex < 0xff ? ppu.memory.get(patternTableAddr) : 0xff;
+    const auto patternTableLo = ppu.memory.get(patternTableAddr);
     Fiber.yield();
     Fiber.yield();
 
-    const auto patternTableHi = patternIndex < 0xff ? ppu.memory.get(wrap!ushort(patternTableAddr + 8)) : 0xff;
+    const auto patternTableHi = ppu.memory.get(wrap!ushort(patternTableAddr + 8));
     Fiber.yield();
     Fiber.yield();
 
