@@ -140,20 +140,6 @@ public:
     }
 
     /**
-     * Returns: The base nametable address
-     */
-    nothrow @safe @nogc ushort baseNametableAddress() const
-    {
-        final switch (cpu.memory[ppuCtrl] & 0x03)
-        {
-            case 0: return 0x2000;
-            case 1: return 0x2400;
-            case 2: return 0x2800;
-            case 3: return 0x2c00;
-        }
-    }
-
-    /**
      * Returns: The base address of the sprite pattern table being used
      */
     nothrow @safe @nogc ushort spritePatternTableAddress() const

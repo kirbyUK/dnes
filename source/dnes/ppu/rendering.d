@@ -163,7 +163,7 @@ void scanline(bool prerender)
 void tileDataFetch()
 {
     // Fetch the nametable byte
-    const auto tileAddress = ppu.baseNametableAddress() | (ppu.v & 0x0fff);
+    const auto tileAddress = 0x2000 | (ppu.v & 0x0fff);
     const auto nametableByte = ppu.memory.get(tileAddress);
     Fiber.yield();
     Fiber.yield();
@@ -172,8 +172,7 @@ void tileDataFetch()
     // needed based on bit 1 of both the coarse X and coarse Y values
     const auto x = tileAddress & 0x001f;
     const auto y = (tileAddress & 0x03e0) >> 5;
-    const auto attributeAddr = wrap!ushort(ppu.baseNametableAddress() + 0x03c0) |
-        (ppu.v & 0x0c00) | ((ppu.v >> 4) & 0x38) | ((ppu.v >> 2) & 0x07);
+    const auto attributeAddr = 0x23c0 | (ppu.v & 0x0c00) | ((ppu.v >> 4) & 0x38) | ((ppu.v >> 2) & 0x07);
     const auto attributeTableByte = ppu.memory.get(attributeAddr);
     const ubyte attributeTileSelection = (((y % 4) / 2) * 2) + ((x % 4) / 2);
     const ubyte attributeTileBits = (attributeTableByte >> (attributeTileSelection * 2)) & 0x03;
