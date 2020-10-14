@@ -39,7 +39,7 @@ void ppuRendering()
                 if ((!oddFrame) && (ppu.scanline == 0))
                     Fiber.yield();
                 else
-                    ppu.cycles++;
+                    ppu.skipCycle();
             }
             else
                 Fiber.yield();

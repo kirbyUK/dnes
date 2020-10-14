@@ -66,7 +66,6 @@ public:
         // Initialise the CPU values
         cpu.pc = 0xc000;
         cpu.status = 0x24;
-        ppu.scanline = 241;
         _cpuState = cpuStateToInstructionLog();
 
         // Register the signal listener that will determine when the CPU
@@ -183,7 +182,7 @@ unittest
     // Arrange
     rom = new ROM("roms/nestest/nestest.nes");
     cpu = new CPU(false);
-    ppu = new PPU(false);
+    ppu = new PPU(true, 241);
     auto test = new Nestest("roms/nestest/nestest.log");
 
     // Act

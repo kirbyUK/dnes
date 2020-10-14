@@ -22,16 +22,17 @@ public:
      * Constructor
      *
      * Params:
-     *     rendering = True to enable rendering to the screen, false to avoid
-     *                 making any writes to the global 'screen' object.
+     *     unitTest = False to disable rendering to the screen and avoid
+     *                making any writes to the global 'screen' object.
+     *     scanline = The initial scanline value.
      */
-    nothrow this(bool rendering)
+    nothrow this(bool unitTest = false, uint scanline = 0)
     {
         memory = new Memory();
-        cycles = 0;
-        scanline = 0;
         secondaryOAM = 0xff;
-        _rendering = rendering;
+        _cycles = 0;
+        _scanline = scanline;
+        _unitTestMode = unitTest;
         _drawFiber = new Fiber(&ppuDrawing);
         _renderFiber = new Fiber(&ppuRendering);
         _spriteEvaluationFiber = new Fiber(&spriteEvaluation);
@@ -45,19 +46,54 @@ public:
     {
         _renderFiber.call();
         _spriteEvaluationFiber.call();
-        if (_rendering)
+        if (!_unitTestMode)
             _drawFiber.call();
 
-        if (++cycles > 340)
+        if (++_cycles > 340)
         {
-            cycles = 0;
-            if (++scanline > 261)
-                scanline = 0;
+            _cycles = 0;
+            if (++_scanline > 261)
+                _scanline = 0;
         }
     }
 
     /**
-     * Called when an instruction writes to OAMDATA ($2004)
+     * Called when an instruction writes to PPUCTRL ($2000).
+     *
+     * Writing to PPUCTRL also sets the namespace select in the temporary VRAM
+     * address.
+     *
+     * Params:
+     *     value = The value written to PPUCTRL
+     */
+    nothrow @safe @nogc void ppuCtrlWrite(ubyte value)
+    {
+        t = (t & 0xf3ff) | ((value & 0x03) << 10);
+    }
+
+    /**
+     * Called when an instruction reads PPUSTATUS ($2002).
+     *
+     * Reading PPUSTATUS clears the vblank flag, and resets the internal PPU
+     * write toggle.
+     */
+    nothrow @safe @nogc void ppuStatusRead()
+    {
+        // Clearing the vblank flag is handled by the CPU memory, since the
+        // value of the register is held there. This function only resets the
+        // write toggle
+        w = false;
+    }
+
+    /**
+     * Called when an instruction writes to OAMDATA ($2004).
+     *
+     * Writes the passed value to the PPU OAM, at the address determined by the
+     * address in OAMADDR. Increments the value in OAMADDR after writing.
+     *
+     * Nesdev describes glitchy behaviour when writing to this register during
+     * rendering. This function takes the recommended approach of ignoring
+     * writes during rendering.
      *
      * Params:
      *     value = The value written to OAMDATA
@@ -74,7 +110,10 @@ public:
     }
 
     /**
-     * Called when an instruction writes to PPUSCROLL ($2005)
+     * Called when an instruction writes to PPUSCROLL ($2005).
+     *
+     * To fully update the scroll takes two writes. The first write updates the
+     * X scroll positions, the second updates the Y scroll positions.
      *
      * Params:
      *     value = The value written to PPUSCROLL
@@ -104,7 +143,11 @@ public:
     }
 
     /**
-     * Called when an instruction writes to PPUADDR ($2006)
+     * Called when an instruction writes to PPUADDR ($2006).
+     *
+     * To full update the address takes two writes - the high byte is set with
+     * the first write, the lower with the second. Only writes to the real PPU
+     * address on the second write.
      *
      * Params:
      *     value = The value written to PPUADDR
@@ -129,6 +172,44 @@ public:
             v = t;
             w = false;
         }
+    }
+
+    /**
+     * Called when an instruction reads PPUDATA ($2007).
+     *
+     * Retrieves the value at the PPU address, which is set by writing to
+     * PPUADDR. Implements the read buffer - the first read puts the value in
+     * the buffer, a second read is needed to retrieve it.
+     *
+     * Increments the PPU address on each read by either 1 or 32, the amount is
+     * decided by bit 2 of PPUCTRL.
+     *
+     * Returns: The value in the PPU data read buffer.
+     */
+    @safe @nogc ubyte ppuDataRead()
+    {
+        const auto value = _ppuDataReadBuffer;
+        _ppuDataReadBuffer = memory.get(v);
+        v += vramAddressIncrement();
+        return value;
+    }
+
+    /**
+     * Called when an instruction writes to PPUDATA ($2007).
+     *
+     * Writing to PPUDATA sets the value at the current PPU address, which can
+     * be set by writing to PPUADDR.
+     *
+     * Increments the PPU address on each write by either 1 or 32, the amount is
+     * decided by bit 2 of PPUCTRL.
+     *
+     * Params:
+     *     value = The value written to PPUDATA.
+     */
+    @nogc void ppuDataWrite(ubyte value)
+    {
+        memory.set(ppu.v, value);
+        v += vramAddressIncrement();
     }
 
     /**
@@ -187,38 +268,24 @@ public:
         return format("CYC: %3s SL:%d", cycles, scanline);
     }
 
-    /// The PPU memory
-    Memory memory;
+    /**
+     * Returns: The number of clock cycles executed in this scanline. Resets after 340
+     */
+    @property nothrow @safe @nogc uint cycles() const
+    {
+        return _cycles;
+    }
 
-    /// The number of clock cycles executed in this scanline. Resets after 340
-    uint cycles;
-
-    /// The current scanline being drawn. Resets after 261
-    uint scanline;
-
-    /// PPU internal registers
-    ushort v; /// Current VRAM address
-    ushort t; /// Temporary VRAM address
-    ubyte  x; /// Fine X scroll
-    bool   w; /// First or second write toggle
-
-    /// Background rendering registers
-    ushort[2] patternData; /// Contains the pattern table data for two tiles
-    ubyte[2][2] paletteData;  /// Contains the palette attributes for the lower
-                              /// 8 pixels of 16-bit shift register
+    /**
+     * Returns: The current scanline being drawn. Resets after 261
+     */
+    @property nothrow @safe @nogc uint scanline() const
+    {
+        return _scanline;
+    }
 
     /// The PPU OAM memory
-    ubyte[256] oam;         /// Primary OAM, 64 sprites
-    ubyte[32] secondaryOAM; /// Secondary OAM, 8 sprites
-
-    /// Sprite rendering registers
-    ubyte[2][8] spritePatternData; /// High and low pattern bytes for 8 sprites
-    ubyte[8] spriteAttribute;      /// Attribute bytes for 8 sprites
-    ubyte[8] spriteXPosition;      /// X position bytes for 8 sprites
-    ubyte[8] spriteNumber;         /// The primary OAM number of each selected sprite
-
-    /// The read buffer when reading from PPUDATA ($2007)
-    ubyte ppuDataReadBuffer;
+    ubyte[256] oam; /// Primary OAM, 64 sprites
 
     /// Enumeration of signal event types
     enum Event
@@ -232,6 +299,38 @@ public:
     /// about new frames, vblanks, etc.
     mixin Signal!(Event);
 
+package:
+    /**
+     * Skips a cycle - used on the first scanline of each odd frame
+     */
+    nothrow @safe @nogc void skipCycle()
+    {
+        _cycles++;
+    }
+
+    /// The PPU memory
+    Memory memory;
+
+    /// PPU internal registers
+    ushort v; /// Current VRAM address
+    ushort t; /// Temporary VRAM address
+    ubyte  x; /// Fine X scroll
+    bool   w; /// First or second write toggle
+
+    /// Background rendering registers
+    ushort[2] patternData; /// Contains the pattern table data for two tiles
+    ubyte[2][2] paletteData;  /// Contains the palette attributes for the lower
+                              /// 8 pixels of 16-bit shift register
+
+    /// Sprite rendering registers
+    ubyte[2][8] spritePatternData; /// High and low pattern bytes for 8 sprites
+    ubyte[8] spriteAttribute;      /// Attribute bytes for 8 sprites
+    ubyte[8] spriteXPosition;      /// X position bytes for 8 sprites
+    ubyte[8] spriteNumber;         /// The primary OAM number of each selected sprite
+
+    /// OAM
+    ubyte[32] secondaryOAM; /// Secondary OAM, 8 sprites
+
 private:
     // PPU register constants
     const ushort ppuCtrl   = 0x2000;
@@ -243,7 +342,16 @@ private:
     const ushort ppuAddr   = 0x2006;
     const ushort ppuData   = 0x2007;
 
-    bool _rendering;
+    /// The number of clock cycles executed in this scanline. Resets after 340
+    uint _cycles;
+
+    /// The current scanline being drawn. Resets after 261
+    uint _scanline;
+
+    /// The read buffer when reading from PPUDATA ($2007)
+    ubyte _ppuDataReadBuffer;
+
+    bool _unitTestMode;
     Fiber _drawFiber;
     Fiber _renderFiber;
     Fiber _spriteEvaluationFiber;

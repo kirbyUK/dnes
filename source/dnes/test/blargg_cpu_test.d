@@ -106,7 +106,7 @@ unittest
     // Arrange
     rom = new ROM("roms/instr_test-v5/rom_singles/01-basics.nes");
     cpu = new CPU(false);
-    ppu = new PPU(false);
+    ppu = new PPU(true);
     auto test = new BlarggCPUTest();
 
     // Act
@@ -122,7 +122,7 @@ unittest
     // Arrange
     rom = new ROM("roms/instr_test-v5/rom_singles/02-implied.nes");
     cpu = new CPU(false);
-    ppu = new PPU(false);
+    ppu = new PPU(true);
     auto test = new BlarggCPUTest();
 
     // Act
@@ -138,7 +138,7 @@ unittest
     // Arrange
     rom = new ROM("roms/instr_test-v5/rom_singles/03-immediate.nes");
     cpu = new CPU(false);
-    ppu = new PPU(false);
+    ppu = new PPU(true);
     auto test = new BlarggCPUTest();
 
     // Act
@@ -154,7 +154,7 @@ unittest
     // Arrange
     rom = new ROM("roms/instr_test-v5/rom_singles/04-zero_page.nes");
     cpu = new CPU(false);
-    ppu = new PPU(false);
+    ppu = new PPU(true);
     auto test = new BlarggCPUTest();
 
     // Act
@@ -170,7 +170,7 @@ unittest
     // Arrange
     rom = new ROM("roms/instr_test-v5/rom_singles/05-zp_xy.nes");
     cpu = new CPU(false);
-    ppu = new PPU(false);
+    ppu = new PPU(true);
     auto test = new BlarggCPUTest();
 
     // Act
@@ -186,7 +186,7 @@ unittest
     // Arrange
     rom = new ROM("roms/instr_test-v5/rom_singles/06-absolute.nes");
     cpu = new CPU(false);
-    ppu = new PPU(false);
+    ppu = new PPU(true);
     auto test = new BlarggCPUTest();
 
     // Act
@@ -202,7 +202,7 @@ unittest
     // Arrange
     rom = new ROM("roms/instr_test-v5/rom_singles/07-abs_xy.nes");
     cpu = new CPU(false);
-    ppu = new PPU(false);
+    ppu = new PPU(true);
     auto test = new BlarggCPUTest();
 
     // Act
@@ -218,7 +218,7 @@ unittest
     // Arrange
     rom = new ROM("roms/instr_test-v5/rom_singles/08-ind_x.nes");
     cpu = new CPU(false);
-    ppu = new PPU(false);
+    ppu = new PPU(true);
     auto test = new BlarggCPUTest();
 
     // Act
@@ -234,7 +234,7 @@ unittest
     // Arrange
     rom = new ROM("roms/instr_test-v5/rom_singles/09-ind_y.nes");
     cpu = new CPU(false);
-    ppu = new PPU(false);
+    ppu = new PPU(true);
     auto test = new BlarggCPUTest();
 
     // Act
@@ -250,7 +250,7 @@ unittest
     // Arrange
     rom = new ROM("roms/instr_test-v5/rom_singles/10-branches.nes");
     cpu = new CPU(false);
-    ppu = new PPU(false);
+    ppu = new PPU(true);
     auto test = new BlarggCPUTest();
 
     // Act
@@ -266,7 +266,7 @@ unittest
     // Arrange
     rom = new ROM("roms/instr_test-v5/rom_singles/11-stack.nes");
     cpu = new CPU(false);
-    ppu = new PPU(false);
+    ppu = new PPU(true);
     auto test = new BlarggCPUTest();
 
     // Act
@@ -282,7 +282,7 @@ unittest
     // Arrange
     rom = new ROM("roms/instr_test-v5/rom_singles/12-jmp_jsr.nes");
     cpu = new CPU(false);
-    ppu = new PPU(false);
+    ppu = new PPU(true);
     auto test = new BlarggCPUTest();
 
     // Act
@@ -298,7 +298,7 @@ unittest
     // Arrange
     rom = new ROM("roms/instr_test-v5/rom_singles/13-rts.nes");
     cpu = new CPU(false);
-    ppu = new PPU(false);
+    ppu = new PPU(true);
     auto test = new BlarggCPUTest();
 
     // Act
@@ -314,7 +314,7 @@ unittest
     // Arrange
     rom = new ROM("roms/instr_test-v5/rom_singles/14-rti.nes");
     cpu = new CPU(false);
-    ppu = new PPU(false);
+    ppu = new PPU(true);
     auto test = new BlarggCPUTest();
 
     // Act
@@ -331,7 +331,7 @@ unittest
     // Arrange
     rom = new ROM("roms/instr_test-v5/rom_singles/15-brk.nes");
     cpu = new CPU(false);
-    ppu = new PPU(false);
+    ppu = new PPU(true);
     auto test = new BlarggCPUTest();
 
     // Act
@@ -348,7 +348,7 @@ unittest
     // Arrange
     rom = new ROM("roms/instr_test-v5/rom_singles/16-special.nes");
     cpu = new CPU(false);
-    ppu = new PPU(false);
+    ppu = new PPU(true);
     auto test = new BlarggCPUTest();
 
     // Act

@@ -67,7 +67,7 @@ int main(string[] args)
 
         // Run the emulation
         cpu = new CPU(arg[2]);
-        ppu = new PPU(true);
+        ppu = new PPU();
         ppu.connect(&controller.ppuEventHandler);
         ppu.connect(&screen.ppuEventHandler);
         while (!screen.closed())

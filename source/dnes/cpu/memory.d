@@ -22,11 +22,7 @@ public:
             // Reading PPUDATA retrieves the value from PPU memory according to
             // the PPU's internal pointer, which is set by writing to PPUADDR.
             // It then increments the address
-            tuple(0x2007u, 0x2007u): (ushort addr) {
-                _memory[0x2007] = ppu.ppuDataReadBuffer;
-                ppu.ppuDataReadBuffer = ppu.memory.get(ppu.v);
-                ppu.v += ppu.vramAddressIncrement();
-            },
+            tuple(0x2007u, 0x2007u): (ushort addr) { _memory[0x2007] = ppu.ppuDataRead(); },
 
             // Reading JOY1 gets the next button status
             tuple(0x4016u, 0x4016u): (ushort) { _memory[0x4016] = controller.read(); },
@@ -37,13 +33,13 @@ public:
 
         _postReadCallbacks = [
             // Reading PPUSTATUS clears the vblank flag and the PPU's internal write toggle
-            tuple(0x2002u, 0x2002u): (ushort) { _memory[0x2002] &= 0x7f; ppu.w = false; },
+            tuple(0x2002u, 0x2002u): (ushort) { _memory[0x2002] &= 0x7f; ppu.ppuStatusRead(); },
         ];
 
         _writeCallbacks = [
             // Writing to PPUCTRL also sets the namespace select in the PPU's
             // temporary VRAM address
-            tuple(0x2000u, 0x2000u): (ushort, ubyte value) { ppu.t = (ppu.t & 0xf3ff) | ((value & 0x03) << 10); },
+            tuple(0x2000u, 0x2000u): (ushort, ubyte value) { ppu.ppuCtrlWrite(value); },
 
             // Writing to OAMDATA writes to the PPU OAM, and increments OAMADDR
             tuple(0x2004u, 0x2004u): (ushort, ubyte value) { ppu.oamDataWrite(value); },
@@ -58,10 +54,7 @@ public:
             // Writes to PPUDATA set the value written to the PPU's internal
             // memory - the address is determined by writes to PPUADDR. It then
             // increments the internal address
-            tuple(0x2007u, 0x2007u): (ushort, ubyte value) {
-                ppu.memory.set(ppu.v, value);
-                ppu.v += ppu.vramAddressIncrement();
-            },
+            tuple(0x2007u, 0x2007u): (ushort, ubyte value) { ppu.ppuDataWrite(value); },
 
             // Writes to OAMDMA cause the CPU to enter DMA
             tuple(0x4014u, 0x4014u): (ushort, ubyte) { cpu.dma = true; },

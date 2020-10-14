@@ -21,7 +21,7 @@ public:
     this(bool logging)
     {
         memory = new Memory();
-        cycles = 0;
+        _cycles = 0;
         _dma = false;
         _interrupt = Interrupt.NONE;
 
@@ -43,7 +43,7 @@ public:
      */
     void tick()
     {
-        cycles++;
+        _cycles++;
 
         if (!_dma)
             _instructionsFiber.call();
@@ -136,11 +136,16 @@ public:
             _dmaFiber.reset();
     }
 
+    /**
+     * Returns: The number of cycles the CPU has executed
+     */
+    @property nothrow @safe @nogc uint cycles() const
+    {
+        return _cycles;
+    }
+
     /// The CPU memory
     Memory memory;
-
-    /// The number of clock cycles executed
-    uint cycles;
 
     /// Registers
     ushort pc;     /// Program counter
@@ -183,6 +188,9 @@ public:
     mixin Signal!(Event);
 
 private:
+    /// The number of clock cycles executed
+    uint _cycles;
+
     Fiber _instructionsFiber;
     Fiber _dmaFiber;
     bool _dma;
