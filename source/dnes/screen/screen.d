@@ -109,7 +109,7 @@ public:
         {
             case PPU.Event.FRAME:
                 _processSDLEvents();
-		_render();
+                _render();
                 break;
             default: break;
         }
