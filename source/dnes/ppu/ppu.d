@@ -124,8 +124,8 @@ public:
         {
             // First write (w = 0)
             // t: ........ ...HGFED = d: HGFED...
-			// x:               CBA = d: .....CBA
-			// w:                   = 1
+            // x:               CBA = d: .....CBA
+            // w:                   = 1
             t = (t & 0xffe0) | (value >> 3);
             x = value & 0x0007;
             w = true;
@@ -134,10 +134,9 @@ public:
         {
             // Second write (w = 1)
             // t: .CBA..HG FED..... = d: HGFEDCBA
-			// w:                   = 0
-            t = (t & 0x8FFF) | ((value & 0x03) << 12);
-			t = (t & 0xFCFF) | ((value & 0xC0) << 2);
-			t = (t & 0xFF1F) | ((value & 0x38) << 2);
+            // w:                   = 0
+            t = (t & 0x8FFF) | ((value & 0x07) << 12);
+            t = (t & 0xFC1F) | ((value & 0xF8) << 2);
             w = false;
         }
     }

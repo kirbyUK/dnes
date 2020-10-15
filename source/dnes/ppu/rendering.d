@@ -182,8 +182,10 @@ void tileDataFetch()
 
     // Fetch the two pattern table bytes, using the value from the
     // nametable to select which pattern is selected
-    const auto patternTableAddr = wrap!ushort(
-        ppu.backgroundPatternTableAddress() + (nametableByte * 16) + (ppu.scanline % 8)
+    const auto patternTableAddr = (
+        ppu.backgroundPatternTableAddress() |  // 000X.... ....0...  Half of the sprite table
+        (nametableByte << 4) |                 // 000.XXXX XXXX0...  Tile column and row
+        ((ppu.v & 0x7000) >> 12)               // 000..... ....0XXX  Fine Y offset
     );
     const auto patternTableTileLo = ppu.memory.get(patternTableAddr);
     Fiber.yield();
