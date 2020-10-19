@@ -15,14 +15,37 @@ install the `dmd` compiler, you might need to use the `--compiler` flag.
 
 ## Usage
 
-Currently it only runs [nestest.nes](http://nickmass.com/images/nestest.nes). To
-do that:
+Currently it only runs mapper 0 games, and compatibility is limited. Here are
+some games to try:
+
+* [nestest.nes](http://nickmass.com/images/nestest.nes)
+* Balloon Fight
+* Donkey Kong
+* Super Mario Bros
+* Wrecking Crew
+
+To run it, pass the path to the ROM file as the only argument:
 
 ```
-./dnes --log nestest.nes
+./dnes roms/nestest/nestest.nes
 ```
 
-## Known issues
+Currently only player 1 is supported, and the controls are:
 
-[ ] SBC implementation sets wrong flags
-[ ] SBC implementation relies on deprecated negation behaviour
+* `Z` - A
+* `X` - B
+* `A` - Start
+* `S` - Select
+* `Arrow keys` - D-Pad
+
+## Tests
+
+The tests run the emulator against the test ROMs provided in the repo. In the
+project root, just run:
+
+```
+dub test
+```
+
+This should compile and run a seperate executable, `dnes-test.exe`, which runs
+all the tests.
