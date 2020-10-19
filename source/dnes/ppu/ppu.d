@@ -22,7 +22,7 @@ public:
      * Constructor
      *
      * Params:
-     *     unitTest = False to disable rendering to the screen and avoid
+     *     unitTest = True to disable rendering to the screen and avoid
      *                making any writes to the global 'screen' object.
      *     scanline = The initial scanline value.
      */
