@@ -36,7 +36,7 @@ public:
      *          this is. Bit 7 is always high.
      */
     nothrow @safe @nogc ubyte read()
-    out(r; r == 0x40 || r == 0x41)
+    out (r; r == 0x40 || r == 0x41)
     {
         // Any reads past the first 8 return 1 on official controllers
         if (_current > 7)

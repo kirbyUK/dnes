@@ -46,7 +46,7 @@ public:
         int i = 0;
         while (cpu.memory[0x6004 + i] != 0)
         {
-            _errorText ~= cast(char)cpu.memory[0x6004 + i];
+            _errorText ~= cast(char) cpu.memory[0x6004 + i];
             i++;
         }
     }

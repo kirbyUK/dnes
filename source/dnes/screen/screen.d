@@ -139,8 +139,8 @@ private:
         if (SDL_UpdateTexture(
             _texture,
             null,
-            cast (void*)(_pixels.ptr),
-            cast (int)(width * ARGB.sizeof)
+            cast(void*) _pixels.ptr,
+            cast(int) (width * ARGB.sizeof)
         ) != 0)
             throw new SDLException("Error updating texture");
 

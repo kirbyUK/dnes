@@ -129,7 +129,7 @@ public:
     nothrow @safe @nogc ubyte opIndex(size_t index) const
     in (index >= 0 && index < _memorySize)
     {
-        return (index < 0x4020) ?_memory[index] : rom.cpuRead(cast (ushort) index);
+        return (index < 0x4020) ?_memory[index] : rom.cpuRead(cast(ushort) index);
     }
 
     /**

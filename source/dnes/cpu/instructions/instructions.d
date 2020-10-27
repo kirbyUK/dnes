@@ -231,7 +231,7 @@ ushort calculateAddress(const Instruction instruction)
             Fiber.yield();
             return concat(addrHi, addrLo);
         case Addressing.REL:
-            return wrap!ushort(oldPc + cast(byte)(lo));
+            return wrap!ushort(oldPc + cast(byte) lo);
         case Addressing.IMM:
             return concat(0, lo);
         default: return 0;
@@ -401,7 +401,7 @@ void executeInstruction(const Instruction instruction, ushort address, ubyte val
             break;
 
         case Opcode.DEC:  // Decrement Memory
-            const ubyte newValue = cast(ubyte)(value - 1);
+            const ubyte newValue = cast(ubyte) (value - 1);
             readModifyWriteInstruction(instruction, address, newValue);
             cpu.setFlag(CPU.Flag.Z, newValue == 0);
             cpu.setFlag(CPU.Flag.N, (newValue & 0x80) > 0);
