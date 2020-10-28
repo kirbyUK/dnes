@@ -147,6 +147,7 @@ out (r; r.isNull || (r.get >= 0 && r.get <= 7))
  */
 nothrow @safe @nogc ubyte spriteTile(int selectedSprite, int renderXPos)
 in (selectedSprite >= 0 && selectedSprite <= 7)
+in (renderXPos >= 0 && renderXPos <= 256)
 out (r; r >= 0 && r <= 3)
 {
     const auto spriteLoByte = ppu.spritePatternData[selectedSprite][0];

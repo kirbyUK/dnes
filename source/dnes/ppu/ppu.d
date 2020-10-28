@@ -7,7 +7,6 @@ import std.signals;
 import dnes.cpu;
 import dnes.ppu.drawing;
 import dnes.ppu.memory;
-import dnes.ppu.oam;
 import dnes.ppu.rendering;
 import dnes.ppu.sprite_evaluation;
 import dnes.util;
@@ -315,6 +314,7 @@ package:
     ushort t; /// Temporary VRAM address
     ubyte  x; /// Fine X scroll
     bool   w; /// First or second write toggle
+    invariant (x <= 7);
 
     /// Background rendering registers
     ushort[2] patternData; /// Contains the pattern table data for two tiles
@@ -343,9 +343,11 @@ private:
 
     /// The number of clock cycles executed in this scanline. Resets after 340
     uint _cycles;
+    invariant (_cycles <= 340);
 
     /// The current scanline being drawn. Resets after 261
     uint _scanline;
+    invariant (_scanline <= 261);
 
     /// The read buffer when reading from PPUDATA ($2007)
     ubyte _ppuDataReadBuffer;

@@ -13,6 +13,7 @@ import dnes.util;
  */
 nothrow @safe @nogc ushort nametableMirroring(ushort addr)
 in (addr >= 0x2000 && addr < 0x3000)
+out (r; r >= 0x2000 && r < 0x3000)
 {
     auto ret = addr;
 
