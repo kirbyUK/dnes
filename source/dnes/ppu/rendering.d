@@ -193,13 +193,7 @@ void tileDataFetch()
     Fiber.yield();
 
     // Increment horizontal v
-    if ((ppu.v & 0x001f) == 31)
-    {
-        ppu.v &= 0xffe0;
-        ppu.v ^= 0x0400;
-    }
-    else
-        ppu.v += 1;
+    incrementCoarseXInVramAddr();
     Fiber.yield();
 
     // Reload the shift registers
@@ -264,6 +258,26 @@ in (spriteNumber >= 0 && spriteNumber <= 8)
 }
 
 /**
+ * Increments the coarse X portion of the VRAM address (v), handling wrapping
+ * across lines
+ *
+ * <https://wiki.nesdev.com/w/index.php/PPU_scrolling#Coarse_X_increment>
+ */
+void incrementCoarseXInVramAddr()
+{
+    if ((ppu.renderBackground()) || (ppu.renderSprites()))
+    {
+        if ((ppu.v & 0x001f) == 31)
+        {
+            ppu.v &= 0xffe0;
+            ppu.v ^= 0x0400;
+        }
+        else
+            ppu.v += 1;
+    }
+}
+
+/**
  * Increments the fine y portion of the VRAM address (v), handling wrapping
  * around nametables
  *
@@ -271,21 +285,24 @@ in (spriteNumber >= 0 && spriteNumber <= 8)
  */
 void incrementFineYInVramAddr()
 {
-    if ((ppu.v & 0x7000) != 0x7000)
-        ppu.v += 0x1000;
-    else
+    if ((ppu.renderBackground()) || (ppu.renderSprites()))
     {
-        ppu.v &= ~0x7000;
-        auto y = (ppu.v & 0x03E0) >> 5;
-        if (y == 29)
-        {
-            y = 0;
-            ppu.v ^= 0x0800;
-        }
-        else if (y == 31)
-            y = 0;
+        if ((ppu.v & 0x7000) != 0x7000)
+            ppu.v += 0x1000;
         else
-            y += 1;
-        ppu.v = wrap!ushort((ppu.v & ~0x03E0) | (y << 5));
+        {
+            ppu.v &= ~0x7000;
+            auto y = (ppu.v & 0x03E0) >> 5;
+            if (y == 29)
+            {
+                y = 0;
+                ppu.v ^= 0x0800;
+            }
+            else if (y == 31)
+                y = 0;
+            else
+                y += 1;
+            ppu.v = wrap!ushort((ppu.v & ~0x03E0) | (y << 5));
+        }
     }
 }
