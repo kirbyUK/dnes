@@ -318,8 +318,7 @@ package:
 
     /// Background rendering registers
     ushort[2] patternData; /// Contains the pattern table data for two tiles
-    ubyte[2][2] paletteData;  /// Contains the palette attributes for the lower
-                              /// 8 pixels of 16-bit shift register
+    ushort[2] paletteData; /// Contains the palette attributes for two tiles
 
     /// Sprite rendering registers
     ubyte[2][8] spritePatternData; /// High and low pattern bytes for 8 sprites

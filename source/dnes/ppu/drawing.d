@@ -82,6 +82,8 @@ void ppuDrawing()
             // Shift the registers for the next value
             ppu.patternData[0] >>= 1;
             ppu.patternData[1] >>= 1;
+            ppu.paletteData[0] >>= 1;
+            ppu.paletteData[1] >>= 1;
         }
 
         Fiber.yield();
@@ -111,8 +113,8 @@ nothrow @safe @nogc ubyte backgroundPalette()
 out (r; r >= 0 && r <= 3)
 {
     // Get the low and high bits of the palette attribute for the tile
-    const ubyte attrLoBit = (ppu.paletteData[0][0] >> ppu.x) & 0x01;
-    const ubyte attrHiBit = (ppu.paletteData[0][1] >> ppu.x) & 0x01;
+    const ubyte attrLoBit = (ppu.paletteData[0] >> ppu.x) & 0x01;
+    const ubyte attrHiBit = (ppu.paletteData[1] >> ppu.x) & 0x01;
     const ubyte attr = (attrHiBit << 1) | attrLoBit;
     return attr;
 }

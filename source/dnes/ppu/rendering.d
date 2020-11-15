@@ -170,11 +170,9 @@ void tileDataFetch()
 
     // Fetch the attribute table byte, then select the two attribute bits
     // needed based on bit 1 of both the coarse X and coarse Y values
-    const auto x = tileAddress & 0x001f;
-    const auto y = (tileAddress & 0x03e0) >> 5;
     const auto attributeAddr = 0x23c0 | (ppu.v & 0x0c00) | ((ppu.v >> 4) & 0x38) | ((ppu.v >> 2) & 0x07);
     const auto attributeTableByte = ppu.memory.get(attributeAddr);
-    const ubyte attributeTileSelection = (((y % 4) / 2) * 2) + ((x % 4) / 2);
+    const ubyte attributeTileSelection = (((ppu.v & 0x02) >> 1) | ((ppu.v & 0x40) >> 5)) & 0x03;
     const ubyte attributeTileBits = (attributeTableByte >> (attributeTileSelection * 2)) & 0x03;
     assert(attributeTileBits < 4);
     Fiber.yield();
@@ -212,27 +210,8 @@ void tileDataFetch()
     // we need to flip the nametable bytes.
     ppu.patternData[0] = (ppu.patternData[0] & 0x00ff) | (flip(patternTableTileLo) << 8);
     ppu.patternData[1] = (ppu.patternData[1] & 0x00ff) | (flip(patternTableTileHi) << 8);
-    ppu.paletteData[0][0] = ppu.paletteData[1][0];
-    ppu.paletteData[0][1] = ppu.paletteData[1][1];
-    final switch (attributeTileBits)
-    {
-        case 0:
-            ppu.paletteData[1][0] = 0x00;
-            ppu.paletteData[1][1] = 0x00;
-            break;
-        case 1:
-            ppu.paletteData[1][0] = 0xff;
-            ppu.paletteData[1][1] = 0x00;
-            break;
-        case 2:
-            ppu.paletteData[1][0] = 0x00;
-            ppu.paletteData[1][1] = 0xff;
-            break;
-        case 3:
-            ppu.paletteData[1][0] = 0xff;
-            ppu.paletteData[1][1] = 0xff;
-            break;
-    }
+    ppu.paletteData[0] = (ppu.paletteData[0] & 0x00ff) | (((attributeTileBits & 0x01) > 0) ? 0xff00 : 0x0000);
+    ppu.paletteData[1] = (ppu.paletteData[1] & 0x00ff) | (((attributeTileBits & 0x02) > 0) ? 0xff00 : 0x0000);
 }
 
 /**

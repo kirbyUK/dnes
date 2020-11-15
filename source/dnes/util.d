@@ -32,7 +32,6 @@ pure nothrow @safe @nogc T wrap(T)(uint x)
 /**
  * Flips a given byte. For example, 0b00010010 becomes 0b01001000
  *
- *
  * Params:
  *     b = The byte to flip
  *
