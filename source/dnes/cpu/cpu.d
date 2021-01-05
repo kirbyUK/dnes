@@ -60,7 +60,7 @@ public:
      */
     nothrow @safe @nogc void raiseInterrupt(Interrupt i)
     {
-        const auto isMasked = (cpu.getFlag(CPU.Flag.I) && i == Interrupt.IRQ);
+        const auto isMasked = (cpu.getFlag(CPU.Flag.I) && i <= Interrupt.IRQ);
         if ((i > _interrupt) && (!isMasked))
             _interrupt = i;
     }
@@ -99,8 +99,8 @@ public:
     enum Interrupt
     {
         NONE  = 0,
-        BRK   = 1,
-        IRQ   = 2,
+        IRQ   = 1,
+        BRK   = 2,
         NMI   = 3,
         RESET = 4,
     }

@@ -32,10 +32,8 @@ void executeInstructions(CPU cpu, bool logging)
         executeInstruction(instruction, address, value);
 
         // Check for any queued interrupts and perform the necessary actions
-        // if there are any. The BRK and IRQ interrupts are maskable, so do not
-        // execute if the interrupt disable flag is set.
-        if ((cpu.interrupt != CPU.Interrupt.NONE) &&
-            (!(cpu.interrupt == CPU.Interrupt.IRQ && cpu.getFlag(CPU.Flag.I))))
+        // if there are any.
+        if (cpu.interrupt != CPU.Interrupt.NONE)
         {
             handleInterrupt();
             cpu.resetInterrupt();
