@@ -60,7 +60,7 @@ public:
      */
     nothrow @safe @nogc void raiseInterrupt(Interrupt i)
     {
-        const auto isMasked = (cpu.getFlag(CPU.Flag.I) && i <= Interrupt.IRQ);
+        const auto isMasked = (cpu.getFlag(CPU.Flag.I) && i == Interrupt.IRQ);
         if ((i > _interrupt) && (!isMasked))
             _interrupt = i;
     }

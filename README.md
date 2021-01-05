@@ -19,6 +19,7 @@ Currently it only runs mapper 0 games, and compatibility is limited. Here are
 some games to try:
 
 * [nestest.nes](http://nickmass.com/images/nestest.nes)
+* [Micro Mages](https://morphcatgames.itch.io/micromages)
 * Balloon Fight
 * Donkey Kong
 * Super Mario Bros
