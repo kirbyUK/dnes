@@ -708,15 +708,20 @@ void handleInterrupt()
 
     // The first two ticks read the opcode and the next instruction byte from
     // memory. These values are not used, so we don't actually need to read the
-    // memory. This process occurs naturally during the instruction processing
-    // above for BRK.
-    if (!isBRK)
+    // memory.
+    //
+    // BRK pushes the PC + 2, and we incremented the PC once after reading the
+    // instruction, so we need to increment it again once more before we push it.
+    if (isBRK)
+    {
+        Fiber.yield();
+        cpu.pc += 1;
+    }
+    else
     {
         Fiber.yield();
         Fiber.yield();
     }
-    else
-        cpu.pc += 2;
 
     // The next two cycles push the PC to the stack. In a RESET, the
     // writes are not actually performed, but sp is decremented as if

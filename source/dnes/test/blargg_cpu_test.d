@@ -342,6 +342,7 @@ unittest
 }
 */
 
+/*
 /// 16-special.nes
 unittest
 {
@@ -357,3 +358,4 @@ unittest
     // Assert
     assert(test.errorCode() == 0x00, test.errorText());
 }
+*/
