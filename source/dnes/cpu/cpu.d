@@ -52,6 +52,71 @@ public:
     }
 
     /**
+     * Raise an interrupt - will be ignored if a higher priority
+     * interrupt is already queued.
+     *
+     * Params:
+     *     i = The interrupt to raise
+     */
+    nothrow @safe @nogc void raiseInterrupt(Interrupt i)
+    {
+        const auto isMasked = (cpu.getFlag(CPU.Flag.I) && i <= Interrupt.IRQ);
+        if ((i > _interrupt) && (!isMasked))
+            _interrupt = i;
+    }
+
+    /**
+     * Returns: The CPU state as a string
+     */
+    override @safe string toString() const
+    {
+        return format(
+            "A:%02X X:%02X Y:%02X P:%02X SP:%02X",
+            acc, x, y, status, sp
+        );
+    }
+
+    /**
+     * Returns: The number of cycles the CPU has executed
+     */
+    @property nothrow @safe @nogc uint cycles() const
+    {
+        return _cycles;
+    }
+
+    /// The CPU memory
+    Memory memory;
+
+    /// Registers
+    ushort pc;     /// Program counter
+    ubyte  sp;     /// Stack pointer
+    ubyte  acc;    /// Accumulator
+    ubyte  x;      /// Index register X
+    ubyte  y;      /// Index register Y
+    ubyte  status; /// Processor status flags
+
+    /// Enumeration of interrupt types
+    enum Interrupt
+    {
+        NONE  = 0,
+        BRK   = 1,
+        IRQ   = 2,
+        NMI   = 3,
+        RESET = 4,
+    }
+
+    /// Enumeration of event signals
+    enum Event
+    {
+        INSTRUCTION,
+    }
+
+    /// Signal to mark the end of an instruction, used to notify listeners in
+    /// unit tests
+    mixin Signal!(Event);
+
+package:
+    /**
      * Check if the given flag is set
      *
      * Params:
@@ -86,35 +151,13 @@ public:
     {
         _interrupt = Interrupt.NONE;
     }
-
-    /**
-     * Returns: The CPU state as a string
-     */
-    override @safe string toString() const
-    {
-        return format(
-            "A:%02X X:%02X Y:%02X P:%02X SP:%02X",
-            acc, x, y, status, sp
-        );
-    }
-
+    
     /**
      * Returns: The currently queued interrupt
      */
     @property nothrow @safe @nogc Interrupt interrupt() const
     {
         return _interrupt;
-    }
-
-    /**
-     * Property to set an interrupt - will be ignored if a higher priority
-     * interrupt is already queued
-     */
-    @property nothrow @safe @nogc void interrupt(Interrupt i)
-    {
-        const auto isMasked = (cpu.getFlag(CPU.Flag.I) && i <= Interrupt.IRQ);
-        if ((i > _interrupt) && (!isMasked))
-            _interrupt = i;
     }
 
     /**
@@ -136,25 +179,6 @@ public:
             _dmaFiber.reset();
     }
 
-    /**
-     * Returns: The number of cycles the CPU has executed
-     */
-    @property nothrow @safe @nogc uint cycles() const
-    {
-        return _cycles;
-    }
-
-    /// The CPU memory
-    Memory memory;
-
-    /// Registers
-    ushort pc;     /// Program counter
-    ubyte  sp;     /// Stack pointer
-    ubyte  acc;    /// Accumulator
-    ubyte  x;      /// Index register X
-    ubyte  y;      /// Index register Y
-    ubyte  status; /// Processor status flags
-
     /// Enumeration of each CPU flag
     enum Flag
     {
@@ -166,26 +190,6 @@ public:
         V = 1 << 6, // Overflow
         N = 1 << 7, // Negative
     }
-
-    /// Enumeration of interrupt types
-    enum Interrupt
-    {
-        NONE  = 0,
-        BRK   = 1,
-        IRQ   = 2,
-        NMI   = 3,
-        RESET = 4,
-    }
-
-    /// Enumeration of event signals
-    enum Event
-    {
-        INSTRUCTION,
-    }
-
-    /// Signal to mark the end of an instruction, used to notify listeners in
-    /// unit tests
-    mixin Signal!(Event);
 
 private:
     /// The number of clock cycles executed

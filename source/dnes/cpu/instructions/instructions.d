@@ -354,7 +354,7 @@ void executeInstruction(const Instruction instruction, ushort address, ubyte val
         case Opcode.BRK:  // Force Interrupt
             cpu.pc += 1;
             Fiber.yield();
-            cpu.interrupt = CPU.Interrupt.BRK;
+            cpu.raiseInterrupt(CPU.Interrupt.BRK);
             break;
 
         case Opcode.BVC:  // Branch if Overflow Clear
