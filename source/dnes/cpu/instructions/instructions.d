@@ -352,6 +352,8 @@ void executeInstruction(const Instruction instruction, ushort address, ubyte val
             break;
 
         case Opcode.BRK:  // Force Interrupt
+            cpu.pc += 1;
+            Fiber.yield();
             cpu.interrupt = CPU.Interrupt.BRK;
             break;
 
@@ -708,16 +710,8 @@ void handleInterrupt()
 
     // The first two ticks read the opcode and the next instruction byte from
     // memory. These values are not used, so we don't actually need to read the
-    // memory.
-    //
-    // BRK pushes the PC + 2, and we incremented the PC once after reading the
-    // instruction, so we need to increment it again once more before we push it.
-    if (isBRK)
-    {
-        Fiber.yield();
-        cpu.pc += 1;
-    }
-    else
+    // memory. This has already been done if the interrupt was a BRK instruction.
+    if (!isBRK)
     {
         Fiber.yield();
         Fiber.yield();
