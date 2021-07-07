@@ -17,13 +17,14 @@ public:
      * Constructor
      *
      * Throws:
-     *     SDLLoadException if the library cannot be loaded
      *     SDLException if an error occurs creating the window or texture
      */
     this()
     {
-        if (SDL_Init(SDL_INIT_VIDEO) != 0)
+        if (!_sdlVideoInitialised && SDL_Init(SDL_INIT_VIDEO) != 0)
             throw new SDLException("Error initialising SDL");
+        else
+            _sdlVideoInitialised = true;
 
         _window = SDL_CreateWindow(
             windowTitle.ptr,
@@ -151,7 +152,7 @@ private:
     immutable int width = 256;
     immutable int height = 240;
 
-    static bool _sdlLibraryLoaded = false;
+    static bool _sdlVideoInitialised = false;
 
     SDL_Window* _window;
     SDL_Renderer* _renderer;
