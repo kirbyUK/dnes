@@ -7,6 +7,7 @@ import dnes.cpu;
 import dnes.ppu;
 import dnes.rom;
 import dnes.screen;
+import dnes.sdl;
 
 /**
  * Print program usage
@@ -58,6 +59,8 @@ int main(string[] args)
     auto ret = 0;
     try
     {
+        initialiseSDL();
+
         // Load the ROM from the given file
         rom = new ROM(arg[1]);
 

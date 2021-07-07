@@ -1,4 +1,4 @@
-module dnes.screen.sdl;
+module dnes.sdl.sdl;
 
 import std.ascii;
 import std.exception;

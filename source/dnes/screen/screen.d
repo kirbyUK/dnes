@@ -4,7 +4,7 @@ import bindbc.sdl;
 
 import dnes.ppu;
 import dnes.screen.palette;
-import dnes.screen.sdl;
+import dnes.sdl;
 
 /**
  * Class representing the screen, which manages the SDL window the emulator
@@ -22,13 +22,6 @@ public:
      */
     this()
     {
-        _closed = false;
-        if (!_sdlLibraryLoaded)
-        {
-            initialiseSDL();
-            _sdlLibraryLoaded = true;
-        }
-
         if (SDL_Init(SDL_INIT_VIDEO) != 0)
             throw new SDLException("Error initialising SDL");
 
