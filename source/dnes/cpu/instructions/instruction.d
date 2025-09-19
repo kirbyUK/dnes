@@ -24,8 +24,8 @@ public:
         if (pair.isNull)
             throw new UnknownInstructionException(n);
 
-        opcode = pair[0];
-        addressing = pair[1];
+        opcode = pair.get[0];
+        addressing = pair.get[1];
     }
 
     /// The opcode of the instruction
